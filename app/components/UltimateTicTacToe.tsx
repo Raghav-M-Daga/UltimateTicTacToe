@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { database } from '../../firebaseConfig';
 import { ref, set, push, remove, get, getDatabase } from 'firebase/database';
@@ -147,28 +147,52 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const router = useRouter();
   const isLeavingRef = useRef(false);
 
-  // Computer move for singleplayer mode
+  const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
+    if (winner || (activeBoard !== null && activeBoard !== boardIndex && (!miniWinners[activeBoard] && !isMiniBoardFull(gameState[activeBoard])))) return;
+    const newGameState = [...gameState];
+    newGameState[boardIndex] = [...newGameState[boardIndex]];
+    newGameState[boardIndex][cellIndex] = currentPlayer;
+    const miniWinner = checkMiniWinner(newGameState[boardIndex]);
+    const newMiniWinners = [...miniWinners];
+    if (miniWinner && !newMiniWinners[boardIndex]) {
+      newMiniWinners[boardIndex] = miniWinner.winner;
+    }
+    setGameState(newGameState);
+    setMiniWinners(newMiniWinners);
+    setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+    setMoveHistory([...moveHistory, { board: boardIndex, cell: cellIndex }]);
+    let nextActive: number | null = cellIndex;
+    if (
+      typeof nextActive === 'number' &&
+      (newMiniWinners[nextActive] || isMiniBoardFull(newGameState[nextActive]))
+    ) {
+      nextActive = null;
+    }
+    setActiveBoard(nextActive);
+    const mainWinner = checkMainBoardWinner(newMiniWinners);
+    if (mainWinner) {
+      setWinner(mainWinner);
+    }
+  }, [winner, activeBoard, miniWinners, gameState, currentPlayer, moveHistory]);
+
   useEffect(() => {
     if (mode === 'single' && currentPlayer === 'O' && !winner) {
-      // Find the board to play in
       let boardToPlay = activeBoard;
       if (boardToPlay === null || miniWinners[boardToPlay]) {
-        // If no active board or it's already won, pick any available
         const availableBoards = gameState
           .map((mini, idx) => (miniWinners[idx] === null && mini.includes(null) ? idx : null))
           .filter(idx => idx !== null) as number[];
         boardToPlay = availableBoards.length > 0 ? availableBoards[0] : null;
       }
       if (boardToPlay === null) return;
-      // Use getStrongMove to pick the best move
       const move = getStrongMove(gameState[boardToPlay], boardToPlay, gameState, miniWinners);
       if (move !== -1 && gameState[boardToPlay][move] === null) {
         setTimeout(() => {
           handleLocalMove(boardToPlay!, move);
-        }, 500); // Add a slight delay for realism
+        }, 500);
       }
     }
-  }, [mode, currentPlayer, winner, activeBoard, gameState, miniWinners]);
+  }, [mode, currentPlayer, winner, activeBoard, gameState, miniWinners, handleLocalMove]);
 
   // Warn on navigation away for single/local modes
   useEffect(() => {
@@ -199,11 +223,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const createGame = async (): Promise<void> => {
     try {
       const db = getDatabase();
-      const gameRef = push(ref(db, 'games'));
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
-      
       if (!newGameId) throw new Error('Failed to create game');
-      
       await set(ref(db, `games/${newGameId}`), {
         board: Array(9).fill(Array(9).fill(null)),
         currentPlayer: 'X',
@@ -213,7 +234,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           X: auth.currentUser?.uid
         }
       });
-
       setGameId(newGameId);
       setIsPlayerX(true);
       router.push(`/games/online?id=${newGameId}`);
@@ -319,42 +339,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     } catch (error) {
       console.error('Error making move:', error);
       alert('Failed to make move. Please try again.');
-    }
-  };
-
-  const handleLocalMove = (boardIndex: number, cellIndex: number): void => {
-    if (winner || (activeBoard !== null && activeBoard !== boardIndex && (!miniWinners[activeBoard] && !isMiniBoardFull(gameState[activeBoard])))) return;
-
-    const newGameState = [...gameState];
-    newGameState[boardIndex] = [...newGameState[boardIndex]];
-    newGameState[boardIndex][cellIndex] = currentPlayer;
-
-    // Check for mini-board winner
-    const miniWinner = checkMiniWinner(newGameState[boardIndex]);
-    const newMiniWinners = [...miniWinners];
-    if (miniWinner && !newMiniWinners[boardIndex]) {
-      newMiniWinners[boardIndex] = miniWinner.winner;
-    }
-
-    setGameState(newGameState);
-    setMiniWinners(newMiniWinners);
-    setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-    setMoveHistory([...moveHistory, { board: boardIndex, cell: cellIndex }]);
-
-    // Set next active board
-    let nextActive: number | null = cellIndex;
-    if (
-      typeof nextActive === 'number' &&
-      (newMiniWinners[nextActive] || isMiniBoardFull(newGameState[nextActive]))
-    ) {
-      nextActive = null;
-    }
-    setActiveBoard(nextActive);
-
-    // Check for main board winner
-    const mainWinner = checkMainBoardWinner(newMiniWinners);
-    if (mainWinner) {
-      setWinner(mainWinner);
     }
   };
 
