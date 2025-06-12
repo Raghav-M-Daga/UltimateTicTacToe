@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { database } from '../../firebaseConfig';
-import { ref, set, push, remove, get, getDatabase } from 'firebase/database';
+import { ref, set, remove, get, getDatabase } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { auth } from '../firebaseConfig';
 
@@ -54,8 +54,7 @@ const getStrongMove = (
   miniBoard: MiniBoardState,
   miniIndex: number,
   board: BoardState,
-  miniWinners: (Player | null)[],
-  nextActiveBoard: number | null = null
+  miniWinners: (Player | null)[]
 ): number => {
   const opponent: Player = 'X';
   const self: Player = 'O';
