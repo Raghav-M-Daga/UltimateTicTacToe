@@ -48,9 +48,13 @@ export default function SignInPage() {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Auth error:', err);
-      setError(err.message || 'Authentication failed. Please try again.');
+      if (err instanceof Error) {
+        setError(err.message || 'Authentication failed. Please try again.');
+      } else {
+        setError('Authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

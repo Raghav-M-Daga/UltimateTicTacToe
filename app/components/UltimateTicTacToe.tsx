@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { database } from '../../firebaseConfig';
-import { ref, set, onValue, push, remove, get, update, getDatabase } from 'firebase/database';
+import { ref, set, push, remove, get, getDatabase } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { auth } from '../firebaseConfig';
 
@@ -12,11 +12,8 @@ type Player = 'X' | 'O' | null;
 type MiniBoardState = Player[];
 type BoardState = MiniBoardState[];
 type GameMode = 'single' | 'multi' | 'online' | null;
-type GameStatus = 'waiting' | 'playing' | 'finished';
 
 // Helpers
-const emptyMiniBoard = (): MiniBoardState => Array(9).fill(null);
-
 const winningCombos = [
   [0, 1, 2],
   [3, 4, 5],
@@ -50,17 +47,6 @@ const checkMainBoardWinner = (miniWinners: (Player | null)[]): { winner: Player;
     }
   }
   return null;
-};
-
-const checkWinner = (board: BoardState): { winner: Player; line: number[] } | null => {
-  // Check each mini-board for a winner
-  const miniWinners = board.map(mini => {
-    const result = checkMiniWinner(mini);
-    return result?.winner || null;
-  });
-  
-  // Check if there's a winner in the main board
-  return checkMainBoardWinner(miniWinners);
 };
 
 // Improved AI: Avoid sending opponent to dangerous boards
@@ -114,7 +100,7 @@ const getStrongMove = (
     }
   }
   // 3. Prefer moves that send opponent to a safe board
-  let safeMoves: number[] = [];
+  const safeMoves: number[] = [];
   for (let i = 0; i < 9; i++) {
     if (miniBoard[i] === null) {
       if (!isDangerousBoard(i)) safeMoves.push(i);
@@ -472,7 +458,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         <div className="mb-4">
           <p className="text-lg">Game ID: {gameId}</p>
           <p className="text-lg">You are playing as: {isPlayerX ? 'X' : 'O'}</p>
-          {!isPlayerX && <p className="text-lg">Waiting for opponent's move...</p>}
+          {!isPlayerX && <p className="text-lg">Waiting for opponent&apos;s move...</p>}
         </div>
       )}
       <div className="relative grid grid-cols-3 gap-2">
@@ -488,7 +474,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 [1 / 6, 1 / 2], [1 / 2, 1 / 2], [5 / 6, 1 / 2],
                 [1 / 6, 5 / 6], [1 / 2, 5 / 6], [5 / 6, 5 / 6],
               ];
-              const [a, b, c] = winner.line;
+              const [a, , c] = winner.line;
               const [x1, y1] = centers[a];
               const [x2, y2] = centers[c];
               return (
