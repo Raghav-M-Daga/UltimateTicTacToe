@@ -348,8 +348,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         activeBoard: cellIndex,
         winner: mainWinner,
         players: {
-          X: gameStatus === 'waiting' ? auth.currentUser?.uid : (isPlayerX ? auth.currentUser?.uid : null),
-          O: !isPlayerX ? auth.currentUser?.uid : null
+          X: isPlayerX ? auth.currentUser?.uid : null,
+          O: isPlayerX ? null : auth.currentUser?.uid
         },
         status: gameStatus,
       });
@@ -434,7 +434,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 if (joinGameId) {
                   try {
                     await joinGame(joinGameId);
-                  } catch (e) {
+                  } catch {
                     // Optionally handle error
                   }
                 }
