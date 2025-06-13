@@ -231,16 +231,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const unsubscribe = onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-        setGameState(data.board);
+        if (Array.isArray(data.board)) {
+          setGameState(data.board);
+          setMiniWinners(
+            data.board.map((mini: MiniBoardState) => {
+              const result = checkMiniWinner(mini);
+              return result?.winner || null;
+            })
+          );
+        } else {
+          setGameState(Array(9).fill(Array(9).fill(null)));
+          setMiniWinners(Array(9).fill(null));
+        }
         setCurrentPlayer(data.currentPlayer);
         setActiveBoard(data.activeBoard);
         setWinner(data.winner);
-        setMiniWinners(
-          data.board.map((mini: MiniBoardState) => {
-            const result = checkMiniWinner(mini);
-            return result?.winner || null;
-          })
-        );
         const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
         if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
           setShowStartAlert(true);
@@ -303,7 +308,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setGameStatus('playing');
     } catch (error) {
       console.error('Error joining game:', error);
-      alert('Failed to join game. Please try again.');
+      alert('Failed to join game. Please try again.'); 
     }
   };
 
