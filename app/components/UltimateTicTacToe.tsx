@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { database } from '../../firebaseConfig';
-import { ref, set, remove, get, getDatabase } from 'firebase/database';
+import { ref, set, remove, get, getDatabase, onValue } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { auth } from '../firebaseConfig';
 
@@ -143,8 +143,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const [isPlayerX, setIsPlayerX] = useState<boolean | null>(null);
   const [moveHistory, setMoveHistory] = useState<Array<{ board: number; cell: number }>>([]);
   const [miniWinners, setMiniWinners] = useState<(Player | null)[]>(Array(9).fill(null));
+  const [joinGameId, setJoinGameId] = useState('');
   const router = useRouter();
   const isLeavingRef = useRef(false);
+  const gameStatusRef = useRef<'waiting' | 'playing'>('waiting');
+  const [gameStatus, setGameStatus] = useState<'waiting' | 'playing'>('waiting');
+  const [showStartAlert, setShowStartAlert] = useState(false);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
     if (winner || (activeBoard !== null && activeBoard !== boardIndex && (!miniWinners[activeBoard] && !isMiniBoardFull(gameState[activeBoard])))) return;
@@ -219,6 +223,36 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     }
   }, [mode, gameId]);
 
+  // Real-time sync for online games
+  useEffect(() => {
+    if (mode === 'online' && gameId) {
+      const db = getDatabase();
+      const gameRef = ref(db, `games/${gameId}`);
+      const unsubscribe = onValue(gameRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        setGameState(data.board);
+        setCurrentPlayer(data.currentPlayer);
+        setActiveBoard(data.activeBoard);
+        setWinner(data.winner);
+        setMiniWinners(
+          data.board.map((mini: MiniBoardState) => {
+            const result = checkMiniWinner(mini);
+            return result?.winner || null;
+          })
+        );
+        const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
+        if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
+          setShowStartAlert(true);
+          setTimeout(() => setShowStartAlert(false), 2000);
+        }
+        setGameStatus(newStatus);
+        gameStatusRef.current = newStatus;
+      });
+      return () => unsubscribe();
+    }
+  }, [mode, gameId]);
+
   const createGame = async (): Promise<void> => {
     try {
       const db = getDatabase();
@@ -231,10 +265,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         winner: null,
         players: {
           X: auth.currentUser?.uid
-        }
+        },
+        status: 'waiting',
       });
       setGameId(newGameId);
       setIsPlayerX(true);
+      setGameStatus('waiting');
       router.push(`/games/online?id=${newGameId}`);
     } catch (error) {
       console.error('Error creating game:', error);
@@ -246,27 +282,25 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${id}`);
-      
       const snapshot = await get(gameRef);
       if (!snapshot.exists()) {
         throw new Error('Game not found');
       }
-
       const gameData = snapshot.val();
       if (gameData.players.O) {
         throw new Error('Game is full');
       }
-
       await set(gameRef, {
         ...gameData,
         players: {
           ...gameData.players,
           O: auth.currentUser?.uid
-        }
+        },
+        status: 'playing',
       });
-
       setGameId(id);
       setIsPlayerX(false);
+      setGameStatus('playing');
     } catch (error) {
       console.error('Error joining game:', error);
       alert('Failed to join game. Please try again.');
@@ -295,43 +329,34 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
-    if (!gameId || isPlayerX === null || currentPlayer !== (isPlayerX ? 'X' : 'O')) return;
-
+    if (!gameId || isPlayerX === null || currentPlayer !== (isPlayerX ? 'X' : 'O') || gameStatus !== 'playing') return;
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
-      
       const newGameState = [...gameState];
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = currentPlayer;
-      
-      // Check for mini-board winner
       const miniWinner = checkMiniWinner(newGameState[boardIndex]);
       const newMiniWinners = [...miniWinners];
       if (miniWinner && !newMiniWinners[boardIndex]) {
         newMiniWinners[boardIndex] = miniWinner.winner;
       }
-      
-      // Check for main board winner
       const mainWinner = checkMainBoardWinner(newMiniWinners);
-      
       await set(gameRef, {
         board: newGameState,
         currentPlayer: currentPlayer === 'X' ? 'O' : 'X',
         activeBoard: cellIndex,
         winner: mainWinner,
         players: {
-          X: auth.currentUser?.uid,
-          O: auth.currentUser?.uid
-        }
+          X: gameStatus === 'waiting' ? auth.currentUser?.uid : (isPlayerX ? auth.currentUser?.uid : null),
+          O: !isPlayerX ? auth.currentUser?.uid : null
+        },
+        status: gameStatus,
       });
-
       setGameState(newGameState);
-      setMiniWinners(newMiniWinners);
       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
       setActiveBoard(cellIndex);
       setMoveHistory([...moveHistory, { board: boardIndex, cell: cellIndex }]);
-      
       if (mainWinner) {
         setWinner(mainWinner);
       }
@@ -396,16 +421,25 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           <div className="flex flex-col gap-2 items-center">
             <input
               type="text"
-              value={gameId}
-              onChange={(e) => setGameId(e.target.value)}
+              value={joinGameId}
+              onChange={(e) => setJoinGameId(e.target.value)}
               placeholder="Enter game ID"
-              className="px-4 py-2 rounded text-black w-48"
+              className="px-4 py-2 rounded text-black w-48 border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}
+              maxLength={6}
+              autoComplete="off"
             />
             <button
-              onClick={() => {
-                if (gameId) joinGame(gameId);
+              onClick={async () => {
+                if (joinGameId) {
+                  try {
+                    await joinGame(joinGameId);
+                  } catch (e) {
+                    // Optionally handle error
+                  }
+                }
               }}
-              className="px-6 py-3 bg-white text-black font-bold rounded hover:bg-gray-300 w-48"
+              className="px-6 py-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 w-48 transition-colors"
             >
               Join Game
             </button>
@@ -572,6 +606,14 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           </button>
         )}
       </div>
+
+      {showStartAlert && (
+        <div className="fixed top-0 left-0 w-full flex justify-center z-50">
+          <div className="bg-blue-600 text-white px-6 py-3 rounded-b-lg shadow-lg text-xl font-bold mt-2 animate-bounce">
+            Game is starting!
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
