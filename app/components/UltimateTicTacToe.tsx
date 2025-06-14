@@ -378,26 +378,31 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
-    if (!gameId || isPlayerX === null) return;
-    
-    // Strictly enforce player turns
-    const isMyTurn = (isPlayerX && currentPlayer === 'X') || (!isPlayerX && currentPlayer === 'O');
-    if (!isMyTurn || gameStatus !== 'playing') {
-      console.log('Not your turn or game not in playing state');
+    if (!gameId || isPlayerX === null) {
+      console.log('No game ID or player not assigned');
       return;
     }
-
+    
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
-      if (!snapshot.exists()) return;
+      if (!snapshot.exists()) {
+        console.log('Game not found');
+        return;
+      }
       
       const gameData = snapshot.val();
       
-      // Double check it's the player's turn
-      if (gameData.currentPlayer !== currentPlayer) {
-        console.log('Not your turn');
+      // Strictly enforce player turns
+      const isMyTurn = (isPlayerX && gameData.currentPlayer === 'X') || (!isPlayerX && gameData.currentPlayer === 'O');
+      if (!isMyTurn) {
+        console.log('Not your turn', { isPlayerX, currentPlayer: gameData.currentPlayer });
+        return;
+      }
+
+      if (gameData.status !== 'playing') {
+        console.log('Game not in playing state', gameData.status);
         return;
       }
 
@@ -406,7 +411,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         Array.isArray(mini) ? [...mini] : Array(9).fill(null)
       );
       newGameState[boardIndex] = [...newGameState[boardIndex]];
-      newGameState[boardIndex][cellIndex] = currentPlayer;
+      newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
 
       // Calculate all mini-winners
       const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
@@ -427,14 +432,14 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const updateData = {
         ...gameData,
         board: newGameState,
-        currentPlayer: currentPlayer === 'X' ? 'O' : 'X',
+        currentPlayer: gameData.currentPlayer === 'X' ? 'O' : 'X',
         activeBoard: nextActiveBoard,
         winner: mainWinner,
         miniWinners: newMiniWinners,
         lastMove: {
           board: boardIndex,
           cell: cellIndex,
-          player: currentPlayer,
+          player: gameData.currentPlayer,
           timestamp: Date.now()
         }
       };
