@@ -238,14 +238,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           return;
         }
 
-        console.log('Received game update:', data);
+        console.log('Received game update:', JSON.stringify(data, null, 2));
 
         try {
           // Update game state
           if (data.board) {
-            const newBoard = data.board.map((mini: MiniBoardState) => 
-              Array.isArray(mini) ? [...mini] : Array(9).fill(null)
-            );
+            // Ensure board is properly structured
+            const newBoard = data.board.map((mini: any) => {
+              if (!Array.isArray(mini)) {
+                console.log('Invalid mini-board found:', mini);
+                return Array(9).fill(null);
+              }
+              return mini.map((cell: any) => cell === 'X' || cell === 'O' ? cell : null);
+            });
+            
+            console.log('Processed board state:', JSON.stringify(newBoard, null, 2));
             setGameState(newBoard);
             
             // Update mini winners
@@ -254,6 +261,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               return result?.winner || null;
             });
             setMiniWinners(newMiniWinners);
+          } else {
+            console.log('No board data in game update');
           }
 
           // Update game status
@@ -323,7 +332,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         createdAt: Date.now()
       };
 
-      console.log('Creating new game with state:', initialGameState);
+      console.log('Creating new game with state:', JSON.stringify(initialGameState, null, 2));
       
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
@@ -336,7 +345,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
       
       const savedGame = snapshot.val();
-      console.log('Game created successfully:', savedGame);
+      console.log('Game created successfully:', JSON.stringify(savedGame, null, 2));
       
       // Set local state
       setGameId(newGameId);
@@ -443,7 +452,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
       
       const gameData = snapshot.val();
-      console.log('Making move with game data:', gameData);
+      console.log('Making move with game data:', JSON.stringify(gameData, null, 2));
       
       // Ensure board exists and is properly initialized
       if (!gameData.board || !Array.isArray(gameData.board) || gameData.board.length !== 9) {
