@@ -244,12 +244,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           // Update game state
           if (data.board) {
             // Ensure board is properly structured
-            const newBoard = data.board.map((mini: any) => {
+            const newBoard = data.board.map((mini: Player[] | null) => {
               if (!Array.isArray(mini)) {
                 console.log('Invalid mini-board found:', mini);
                 return Array(9).fill(null);
               }
-              return mini.map((cell: any) => cell === 'X' || cell === 'O' ? cell : null);
+              return mini.map((cell: Player) => cell === 'X' || cell === 'O' ? cell : null);
             });
             
             console.log('Processed board state:', JSON.stringify(newBoard, null, 2));
