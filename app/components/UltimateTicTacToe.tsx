@@ -408,8 +408,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = currentPlayer;
 
-      // Check for mini-board winner
-      const miniWinner = checkMiniWinner(newGameState[boardIndex]);
+      // Calculate all mini-winners
       const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
         const result = checkMiniWinner(mini);
         return result?.winner || null;
