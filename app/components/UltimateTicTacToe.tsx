@@ -233,6 +233,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         if (!data) return;
 
         try {
+          console.log('Received game update:', data);
+          
           // Update game state
           if (Array.isArray(data.board)) {
             const newBoard = data.board.map((mini: MiniBoardState) => 
@@ -293,10 +295,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
-      // Initialize the board properly
-      const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+      // Initialize the board properly with nested arrays
+      const initialBoard: BoardState = Array(9).fill(null).map(() => 
+        Array(9).fill(null)
+      );
       
-      await set(ref(db, `games/${newGameId}`), {
+      const initialGameState = {
         board: initialBoard,
         currentPlayer: 'X',
         activeBoard: null,
@@ -306,8 +310,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           O: null
         },
         status: 'waiting',
-        miniWinners: Array(9).fill(null)
-      });
+        miniWinners: Array(9).fill(null),
+        lastMove: null
+      };
+
+      console.log('Creating new game with state:', initialGameState);
+      
+      await set(ref(db, `games/${newGameId}`), initialGameState);
       
       setGameId(newGameId);
       setIsPlayerX(true);
@@ -401,21 +410,30 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
       
       const gameData = snapshot.val();
+      console.log('Making move with game data:', gameData);
       
       // Ensure board exists and is properly initialized
-      if (!gameData.board || !Array.isArray(gameData.board)) {
-        console.log('Move failed: Invalid board state', { board: gameData.board });
+      if (!gameData.board || !Array.isArray(gameData.board) || gameData.board.length !== 9) {
+        console.log('Move failed: Invalid board state', { 
+          board: gameData.board,
+          isArray: Array.isArray(gameData.board),
+          length: gameData.board?.length
+        });
         return;
       }
 
-      console.log('Current game state:', {
-        currentPlayer: gameData.currentPlayer,
-        isPlayerX,
-        status: gameData.status,
-        lastMove: gameData.lastMove,
-        boardExists: !!gameData.board
-      });
-      
+      // Validate each mini-board
+      for (let i = 0; i < gameData.board.length; i++) {
+        if (!Array.isArray(gameData.board[i]) || gameData.board[i].length !== 9) {
+          console.log('Move failed: Invalid mini-board at index', i, {
+            miniBoard: gameData.board[i],
+            isArray: Array.isArray(gameData.board[i]),
+            length: gameData.board[i]?.length
+          });
+          return;
+        }
+      }
+
       // For first move, ensure X can play
       const isFirstMove = !gameData.lastMove;
       if (isFirstMove && !isPlayerX) {
@@ -465,6 +483,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         return;
       }
 
+      // Make the move
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
 
@@ -499,13 +518,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         }
       };
 
-      console.log('Attempting to update game state:', {
-        boardIndex,
-        cellIndex,
-        currentPlayer: gameData.currentPlayer,
-        nextPlayer: updateData.currentPlayer
-      });
-
+      console.log('Updating game state with:', updateData);
       await set(gameRef, updateData);
       console.log('Move successful');
     } catch (error) {
