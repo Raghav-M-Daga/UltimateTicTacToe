@@ -241,9 +241,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               return result?.winner || null;
             })
           );
-        } else {
-          setGameState(Array(9).fill(Array(9).fill(null)));
-          setMiniWinners(Array(9).fill(null));
         }
 
         // Update game status and player info
@@ -363,33 +360,77 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
-    if (!gameId || isPlayerX === null || currentPlayer !== (isPlayerX ? 'X' : 'O') || gameStatus !== 'playing') return;
+    if (!gameId || isPlayerX === null) return;
+    
+    // Strictly enforce player turns
+    const isMyTurn = (isPlayerX && currentPlayer === 'X') || (!isPlayerX && currentPlayer === 'O');
+    if (!isMyTurn || gameStatus !== 'playing') {
+      console.log('Not your turn or game not in playing state');
+      return;
+    }
+
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
+      const snapshot = await get(gameRef);
+      if (!snapshot.exists()) return;
+      
+      const gameData = snapshot.val();
+      
+      // Double check it's the player's turn
+      if (gameData.currentPlayer !== currentPlayer) {
+        console.log('Not your turn');
+        return;
+      }
+
+      // Create new game state
       const newGameState = [...gameState];
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = currentPlayer;
+
+      // Check for mini-board winner
       const miniWinner = checkMiniWinner(newGameState[boardIndex]);
       const newMiniWinners = [...miniWinners];
       if (miniWinner && !newMiniWinners[boardIndex]) {
         newMiniWinners[boardIndex] = miniWinner.winner;
       }
+
+      // Check for main board winner
       const mainWinner = checkMainBoardWinner(newMiniWinners);
+
+      // Determine next active board
+      let nextActiveBoard: number | null = cellIndex;
+      if (newMiniWinners[cellIndex] || isMiniBoardFull(newGameState[cellIndex])) {
+        nextActiveBoard = null;
+      }
+
+      // Update game in Firebase
       await set(gameRef, {
+        ...gameData,
         board: newGameState,
         currentPlayer: currentPlayer === 'X' ? 'O' : 'X',
-        activeBoard: cellIndex,
+        activeBoard: nextActiveBoard,
         winner: mainWinner,
-        players: {
-          X: isPlayerX ? auth.currentUser?.uid : null,
-          O: isPlayerX ? null : auth.currentUser?.uid
+        miniWinners: newMiniWinners,
+        lastMove: {
+          board: boardIndex,
+          cell: cellIndex,
+          player: currentPlayer,
+          timestamp: Date.now()
         },
-        status: gameStatus,
+        moveHistory: [...(gameData.moveHistory || []), {
+          board: boardIndex,
+          cell: cellIndex,
+          player: currentPlayer,
+          timestamp: Date.now()
+        }]
       });
+
+      // Update local state
       setGameState(newGameState);
+      setMiniWinners(newMiniWinners);
       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      setActiveBoard(cellIndex);
+      setActiveBoard(nextActiveBoard);
       setMoveHistory([...moveHistory, { board: boardIndex, cell: cellIndex }]);
       if (mainWinner) {
         setWinner(mainWinner);
