@@ -231,6 +231,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const unsubscribe = onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
+
+        // Update game state
         if (Array.isArray(data.board)) {
           setGameState(data.board);
           setMiniWinners(
@@ -243,16 +245,28 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           setGameState(Array(9).fill(Array(9).fill(null)));
           setMiniWinners(Array(9).fill(null));
         }
+
+        // Update game status and player info
+        const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
+        setGameStatus(newStatus);
+        gameStatusRef.current = newStatus;
+
+        // Update player assignment
+        const myUid = auth.currentUser?.uid;
+        if (myUid) {
+          setIsPlayerX(data.players?.X === myUid);
+        }
+
+        // Update game state
         setCurrentPlayer(data.currentPlayer);
         setActiveBoard(data.activeBoard);
         setWinner(data.winner);
-        const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
+
+        // Show start alert when game begins
         if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
           setShowStartAlert(true);
           setTimeout(() => setShowStartAlert(false), 2000);
         }
-        setGameStatus(newStatus);
-        gameStatusRef.current = newStatus;
       });
       return () => unsubscribe();
     }
@@ -292,23 +306,38 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         throw new Error('Game not found');
       }
       const gameData = snapshot.val();
+      const myUid = auth.currentUser?.uid;
+      if (!myUid) throw new Error('Not authenticated');
+
+      // Check if player is already in the game
+      if (gameData.players.X === myUid || gameData.players.O === myUid) {
+        setGameId(id);
+        setIsPlayerX(gameData.players.X === myUid);
+        setGameStatus(gameData.status);
+        return;
+      }
+
+      // Check if game is full
       if (gameData.players.O) {
         throw new Error('Game is full');
       }
+
+      // Join as player O
       await set(gameRef, {
         ...gameData,
         players: {
           ...gameData.players,
-          O: auth.currentUser?.uid
+          O: myUid
         },
-        status: 'playing',
+        status: 'playing'
       });
+
       setGameId(id);
       setIsPlayerX(false);
       setGameStatus('playing');
     } catch (error) {
       console.error('Error joining game:', error);
-      alert('Failed to join game. Please try again.'); 
+      alert('Failed to join game. Please try again.');
     }
   };
 
@@ -454,7 +483,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     );
   }
 
-  if (mode === 'online' && !isPlayerX) {
+  if (mode === 'online' && gameStatus === 'waiting') {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
         <h1 className="text-3xl font-bold">Waiting for opponent...</h1>

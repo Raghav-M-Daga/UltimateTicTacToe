@@ -12,4 +12,4 @@ export default function LocalMultiplayerGame() {
       onBack={() => router.push('/games')} 
     />
   );
-} 
+}
