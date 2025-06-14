@@ -274,6 +274,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
           // Update game status
           const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
+          console.log('Updating game status:', { old: gameStatus, new: newStatus });
           setGameStatus(newStatus);
           gameStatusRef.current = newStatus;
 
@@ -297,6 +298,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
           // Show start alert when game begins
           if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
+            console.log('Game is starting!');
             setShowStartAlert(true);
             setTimeout(() => setShowStartAlert(false), 2000);
           }
@@ -310,7 +312,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         unsubscribe();
       };
     }
-  }, [mode, gameId]);
+  }, [mode, gameId, gameStatus]);
 
   const createGame = async (): Promise<void> => {
     try {
@@ -417,7 +419,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         },
         status: 'playing',
         miniWinners: gameData.miniWinners || Array(9).fill(null),
-        lastMove: gameData.lastMove || null
+        lastMove: gameData.lastMove || null,
+        currentPlayer: 'X' // Ensure X starts
       };
 
       console.log('Joining game with data:', JSON.stringify(updatedGameData, null, 2));
@@ -686,6 +689,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
         <h1 className="text-3xl font-bold">Waiting for opponent...</h1>
         <p className="text-lg">Share this game ID with your opponent: {gameId}</p>
+        <div className="mt-4 p-4 bg-gray-800 rounded-lg">
+          <p className="text-sm text-gray-400">Game Status:</p>
+          <p className="text-lg">Waiting for opponent to join</p>
+          <p className="text-sm text-gray-400 mt-2">You are playing as: <span className="text-red-500">X</span></p>
+        </div>
         <button
           onClick={() => {
             if (gameId) remove(ref(database, `games/${gameId}`));
