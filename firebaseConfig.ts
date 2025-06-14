@@ -16,6 +16,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 const firebaseConfig = {
   apiKey: "AIzaSyAQdnM8SYZSxLRM3T2jPeTwyYjBWyn6OQA",
   authDomain: "ultimatetictactoe-23767.firebaseapp.com",
+  databaseURL: "https://ultimatetictactoe-23767-default-rtdb.firebaseio.com",
   projectId: "ultimatetictactoe-23767",
   storageBucket: "ultimatetictactoe-23767.firebasestorage.app",
   messagingSenderId: "147072612784",
@@ -23,7 +24,19 @@ const firebaseConfig = {
   measurementId: "G-3KBZW8XMTQ"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Realtime Database and get a reference to the service
 export const database = getDatabase(app);
+
+// Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider(); 
+export const googleProvider = new GoogleAuthProvider();
+
+// Log initialization status
+console.log('Firebase initialized with config:', {
+  authDomain: firebaseConfig.authDomain,
+  databaseURL: firebaseConfig.databaseURL,
+  projectId: firebaseConfig.projectId
+}); 

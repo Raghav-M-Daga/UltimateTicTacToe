@@ -316,7 +316,22 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
       console.log('Creating new game with state:', initialGameState);
       
-      await set(ref(db, `games/${newGameId}`), initialGameState);
+      // First, verify the database connection
+      const testRef = ref(db, 'test');
+      await set(testRef, { timestamp: Date.now() });
+      console.log('Database connection verified');
+      
+      // Then create the game
+      const gameRef = ref(db, `games/${newGameId}`);
+      await set(gameRef, initialGameState);
+      
+      // Verify the game was created
+      const snapshot = await get(gameRef);
+      if (!snapshot.exists()) {
+        throw new Error('Failed to create game - verification failed');
+      }
+      
+      console.log('Game created successfully:', snapshot.val());
       
       setGameId(newGameId);
       setIsPlayerX(true);
@@ -324,6 +339,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       router.push(`/games/online?id=${newGameId}`);
     } catch (error) {
       console.error('Error creating game:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       alert('Failed to create game. Please try again.');
     }
   };
