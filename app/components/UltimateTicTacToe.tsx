@@ -394,6 +394,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       
       const gameData = snapshot.val();
       
+      // For first move, ensure X can play
+      const isFirstMove = !gameData.lastMove;
+      if (isFirstMove && !isPlayerX) {
+        console.log('Only X can make the first move');
+        return;
+      }
+
       // Strictly enforce player turns
       const isMyTurn = (isPlayerX && gameData.currentPlayer === 'X') || (!isPlayerX && gameData.currentPlayer === 'O');
       if (!isMyTurn) {
@@ -592,8 +599,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
                   {isPlayerX && moveHistory.length === 0 
-                    ? "It&apos;s your turn! Make your first move anywhere on the board."
-                    : "It&apos;s your turn! Make your move."}
+                    ? "It's your turn! Make your first move anywhere on the board."
+                    : "It's your turn! Make your move."}
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
