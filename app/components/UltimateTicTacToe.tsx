@@ -554,15 +554,57 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
-      <h1 className="text-3xl font-bold mb-2">Ultimate Tic Tac Toe</h1>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4 relative">
+      {/* Game ID in top right corner */}
       {mode === 'online' && (
-        <div className="mb-4">
-          <p className="text-lg">Game ID: {gameId}</p>
-          <p className="text-lg">You are playing as: {isPlayerX ? 'X' : 'O'}</p>
-          {!isPlayerX && <p className="text-lg">Waiting for opponent&apos;s move...</p>}
+        <div className="absolute top-4 right-4 bg-gray-800 px-4 py-2 rounded-lg">
+          <p className="text-sm text-gray-400">Game ID</p>
+          <p className="text-xl font-mono font-bold">{gameId}</p>
         </div>
       )}
+
+      <h1 className="text-3xl font-bold mb-2">Ultimate Tic Tac Toe</h1>
+
+      {/* Player and Game Status */}
+      {mode === 'online' && (
+        <div className="mb-6 text-center">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className={`px-6 py-3 rounded-lg ${isPlayerX ? 'bg-red-500/20 border-2 border-red-500' : 'bg-gray-800'}`}>
+              <p className="text-sm text-gray-400">You are</p>
+              <p className={`text-2xl font-bold ${isPlayerX ? 'text-red-500' : 'text-blue-500'}`}>
+                {isPlayerX ? 'X' : 'O'}
+              </p>
+            </div>
+            <div className="px-6 py-3 rounded-lg bg-gray-800">
+              <p className="text-sm text-gray-400">Opponent is</p>
+              <p className={`text-2xl font-bold ${isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>
+                {isPlayerX ? 'O' : 'X'}
+              </p>
+            </div>
+          </div>
+
+          {gameStatus === 'playing' && (
+            <div className={`px-6 py-3 rounded-lg ${
+              currentPlayer === (isPlayerX ? 'X' : 'O')
+                ? 'bg-green-500/20 border-2 border-green-500'
+                : 'bg-yellow-500/20 border-2 border-yellow-500'
+            }`}>
+              {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
+                <p className="text-xl font-bold text-green-400">
+                  {isPlayerX && moveHistory.length === 0 
+                    ? "It's your turn! Make your first move anywhere on the board."
+                    : "It's your turn! Make your move."}
+                </p>
+              ) : (
+                <p className="text-xl font-bold text-yellow-400">
+                  Waiting for opponent's move...
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="relative grid grid-cols-3 gap-2">
         {winner && winner.line && (
           <svg
@@ -570,7 +612,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             style={{ width: '100%', height: '100%' }}
           >
             {(() => {
-              // Map main board indices to center positions
               const centers = [
                 [1 / 6, 1 / 6], [1 / 2, 1 / 6], [5 / 6, 1 / 6],
                 [1 / 6, 1 / 2], [1 / 2, 1 / 2], [5 / 6, 1 / 2],
@@ -596,13 +637,16 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           const boardWinner = miniWinners[miniIndex];
           const miniWin = boardWinner && checkMiniWinner(mini);
           const winLine = miniWin ? miniWin.line : [];
+          const isActive = activeBoard === null || activeBoard === miniIndex;
+          const isFirstMove = moveHistory.length === 0 && isPlayerX && currentPlayer === 'X';
+          
           return (
             <div
               key={miniIndex}
               className={`relative grid grid-cols-3 gap-[1px] p-[2px] border-2 transition-all duration-200 ${
                 winner && winner.winner === miniWinners[miniIndex]
                   ? 'border-transparent opacity-70'
-                  : activeBoard === null || activeBoard === miniIndex
+                  : isActive || isFirstMove
                   ? 'border-white shadow-[0_0_0_3px_#93c5fd]'
                   : 'border-gray-600 opacity-50'
               }`}
@@ -616,13 +660,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             >
               {mini.map((cell, cellIndex) => {
                 const isWinLine = winLine.includes(cellIndex);
+                const canPlay = isFirstMove || (isActive && !miniWinners[miniIndex] && !winner);
+                
                 return (
                   <motion.button
                     key={cellIndex}
                     onClick={() => handleClick(miniIndex, cellIndex)}
                     className={`w-10 h-10 text-xl font-bold border border-gray-500 flex items-center justify-center transition-all duration-150 ${
                       isWinLine && boardWinner ? 'bg-opacity-100' : ''
-                    } ${miniWinners[miniIndex] || winner ? 'pointer-events-none opacity-60' : ''}`}
+                    } ${!canPlay ? 'pointer-events-none opacity-60' : ''}`}
                     style={{
                       color: getCellColor(cell),
                       backgroundColor:
@@ -637,7 +683,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.2 }}
-                    disabled={!!miniWinners[miniIndex] || !!winner}
+                    disabled={!canPlay}
                   >
                     {cell}
                   </motion.button>
@@ -656,20 +702,27 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         })}
       </div>
 
-      <p className="text-lg">
-        {winner
-          ? `🏆 Winner: ${winner.winner}`
-          : `Next: ${currentPlayer} ${
-              activeBoard !== null
-                ? `(Play in board ${activeBoard + 1})`
-                : '(Play anywhere)'
-            }`}
+      {/* Game Status */}
+      <p className="text-lg mt-4">
+        {winner ? (
+          <span className="text-2xl font-bold">
+            🏆 Winner: <span className={winner.winner === 'X' ? 'text-red-500' : 'text-blue-500'}>{winner.winner}</span>
+          </span>
+        ) : (
+          <span className="text-xl">
+            Next: <span className={currentPlayer === 'X' ? 'text-red-500' : 'text-blue-500'}>{currentPlayer}</span>
+            {activeBoard !== null && (
+              <span className="text-gray-400"> (Play in board {activeBoard + 1})</span>
+            )}
+          </span>
+        )}
       </p>
 
-      <div className="flex gap-2 flex-wrap justify-center">
+      {/* Game Controls */}
+      <div className="flex gap-2 flex-wrap justify-center mt-4">
         <button
           onClick={resetGame}
-          className="mt-2 px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
+          className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
         >
           Reset Game
         </button>
@@ -677,7 +730,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           <button
             onClick={undoMove}
             disabled={moveHistory.length === 0}
-            className="mt-2 px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 disabled:opacity-50 transition"
+            className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 disabled:opacity-50 transition"
           >
             Undo
           </button>
@@ -685,7 +738,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         {onBack && (
           <button
             onClick={handleBack}
-            className="mt-2 px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
+            className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
           >
             Back to Game Selection
           </button>
