@@ -228,15 +228,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (mode === 'online' && gameId) {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
+      
+      console.log('Setting up real-time listener for game:', gameId);
+      
       const unsubscribe = onValue(gameRef, (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
+        if (!data) {
+          console.log('No game data received');
+          return;
+        }
+
+        console.log('Received game update:', data);
 
         try {
-          console.log('Received game update:', data);
-          
           // Update game state
-          if (Array.isArray(data.board)) {
+          if (data.board) {
             const newBoard = data.board.map((mini: MiniBoardState) => 
               Array.isArray(mini) ? [...mini] : Array(9).fill(null)
             );
@@ -284,6 +290,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       });
 
       return () => {
+        console.log('Cleaning up real-time listener');
         unsubscribe();
       };
     }
@@ -296,10 +303,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       if (!newGameId) throw new Error('Failed to create game');
 
       // Initialize the board properly with nested arrays
-      const initialBoard: BoardState = Array(9).fill(null).map(() => 
+      const initialBoard = Array(9).fill(null).map(() => 
         Array(9).fill(null)
       );
       
+      // Create the initial game state
       const initialGameState = {
         board: initialBoard,
         currentPlayer: 'X',
@@ -311,17 +319,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         },
         status: 'waiting',
         miniWinners: Array(9).fill(null),
-        lastMove: null
+        lastMove: null,
+        createdAt: Date.now()
       };
 
       console.log('Creating new game with state:', initialGameState);
       
-      // First, verify the database connection
-      const testRef = ref(db, 'test');
-      await set(testRef, { timestamp: Date.now() });
-      console.log('Database connection verified');
-      
-      // Then create the game
+      // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
       await set(gameRef, initialGameState);
       
@@ -331,11 +335,19 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         throw new Error('Failed to create game - verification failed');
       }
       
-      console.log('Game created successfully:', snapshot.val());
+      const savedGame = snapshot.val();
+      console.log('Game created successfully:', savedGame);
       
+      // Set local state
       setGameId(newGameId);
       setIsPlayerX(true);
       setGameStatus('waiting');
+      setGameState(initialBoard);
+      setMiniWinners(Array(9).fill(null));
+      setCurrentPlayer('X');
+      setActiveBoard(null);
+      setWinner(null);
+      
       router.push(`/games/online?id=${newGameId}`);
     } catch (error) {
       console.error('Error creating game:', error);
