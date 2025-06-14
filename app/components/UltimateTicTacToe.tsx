@@ -241,29 +241,36 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         console.log('Received game update:', JSON.stringify(data, null, 2));
 
         try {
-          // Update game state
-          if (data.board) {
-            // Ensure board is properly structured
-            const newBoard = data.board.map((mini: Player[] | null) => {
-              if (!Array.isArray(mini)) {
-                console.log('Invalid mini-board found:', mini);
-                return Array(9).fill(null);
-              }
-              return mini.map((cell: Player) => cell === 'X' || cell === 'O' ? cell : null);
+          // Initialize board if it doesn't exist
+          if (!data.board) {
+            console.log('Initializing missing board');
+            const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+            set(ref(db, `games/${gameId}`), {
+              ...data,
+              board: initialBoard,
+              miniWinners: Array(9).fill(null)
             });
-            
-            console.log('Processed board state:', JSON.stringify(newBoard, null, 2));
-            setGameState(newBoard);
-            
-            // Update mini winners
-            const newMiniWinners = newBoard.map((mini: MiniBoardState) => {
-              const result = checkMiniWinner(mini);
-              return result?.winner || null;
-            });
-            setMiniWinners(newMiniWinners);
-          } else {
-            console.log('No board data in game update');
+            return;
           }
+
+          // Update game state
+          const newBoard = data.board.map((mini: Player[] | null) => {
+            if (!Array.isArray(mini)) {
+              console.log('Invalid mini-board found:', mini);
+              return Array(9).fill(null);
+            }
+            return mini.map((cell: Player) => cell === 'X' || cell === 'O' ? cell : null);
+          });
+          
+          console.log('Processed board state:', JSON.stringify(newBoard, null, 2));
+          setGameState(newBoard);
+          
+          // Update mini winners
+          const newMiniWinners = newBoard.map((mini: MiniBoardState) => {
+            const result = checkMiniWinner(mini);
+            return result?.winner || null;
+          });
+          setMiniWinners(newMiniWinners);
 
           // Update game status
           const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
@@ -395,19 +402,35 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         throw new Error('Game is full');
       }
 
+      // Initialize board if it doesn't exist
+      if (!gameData.board) {
+        gameData.board = Array(9).fill(null).map(() => Array(9).fill(null));
+      }
+
       // Join as player O
-      await set(gameRef, {
+      const updatedGameData = {
         ...gameData,
+        board: gameData.board,
         players: {
           ...gameData.players,
           O: myUid
         },
-        status: 'playing'
-      });
+        status: 'playing',
+        miniWinners: gameData.miniWinners || Array(9).fill(null),
+        lastMove: gameData.lastMove || null
+      };
+
+      console.log('Joining game with data:', JSON.stringify(updatedGameData, null, 2));
+      await set(gameRef, updatedGameData);
 
       setGameId(id);
       setIsPlayerX(false);
       setGameStatus('playing');
+      setGameState(updatedGameData.board);
+      setMiniWinners(updatedGameData.miniWinners);
+      setCurrentPlayer('X');
+      setActiveBoard(null);
+      setWinner(null);
     } catch (error) {
       console.error('Error joining game:', error);
       alert('Failed to join game. Please try again.');
