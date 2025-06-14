@@ -290,18 +290,25 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const createGame = async (): Promise<void> => {
     try {
       const db = getDatabase();
-      const newGameId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+      const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
+
+      // Initialize the board properly
+      const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+      
       await set(ref(db, `games/${newGameId}`), {
-        board: Array(9).fill(Array(9).fill(null)),
+        board: initialBoard,
         currentPlayer: 'X',
         activeBoard: null,
         winner: null,
         players: {
-          X: auth.currentUser?.uid
+          X: auth.currentUser?.uid,
+          O: null
         },
         status: 'waiting',
+        miniWinners: Array(9).fill(null)
       });
+      
       setGameId(newGameId);
       setIsPlayerX(true);
       setGameStatus('waiting');
@@ -379,7 +386,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
     if (!gameId || isPlayerX === null) {
-      console.log('No game ID or player not assigned');
+      console.log('Move failed: No game ID or player not assigned', { gameId, isPlayerX });
       return;
     }
     
@@ -387,36 +394,77 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
+      
       if (!snapshot.exists()) {
-        console.log('Game not found');
+        console.log('Move failed: Game not found', { gameId });
         return;
       }
       
       const gameData = snapshot.val();
       
+      // Ensure board exists and is properly initialized
+      if (!gameData.board || !Array.isArray(gameData.board)) {
+        console.log('Move failed: Invalid board state', { board: gameData.board });
+        return;
+      }
+
+      console.log('Current game state:', {
+        currentPlayer: gameData.currentPlayer,
+        isPlayerX,
+        status: gameData.status,
+        lastMove: gameData.lastMove,
+        boardExists: !!gameData.board
+      });
+      
       // For first move, ensure X can play
       const isFirstMove = !gameData.lastMove;
       if (isFirstMove && !isPlayerX) {
-        console.log('Only X can make the first move');
+        console.log('Move failed: Only X can make the first move');
         return;
       }
 
       // Strictly enforce player turns
       const isMyTurn = (isPlayerX && gameData.currentPlayer === 'X') || (!isPlayerX && gameData.currentPlayer === 'O');
       if (!isMyTurn) {
-        console.log('Not your turn', { isPlayerX, currentPlayer: gameData.currentPlayer });
+        console.log('Move failed: Not your turn', { 
+          isPlayerX, 
+          currentPlayer: gameData.currentPlayer,
+          isMyTurn 
+        });
         return;
       }
 
       if (gameData.status !== 'playing') {
-        console.log('Game not in playing state', gameData.status);
+        console.log('Move failed: Game not in playing state', { 
+          status: gameData.status,
+          expected: 'playing'
+        });
         return;
       }
 
-      // Create new game state
+      // Create new game state with defensive checks
       const newGameState = gameData.board.map((mini: MiniBoardState) => 
         Array.isArray(mini) ? [...mini] : Array(9).fill(null)
       );
+
+      // Validate board indices
+      if (!newGameState[boardIndex] || !Array.isArray(newGameState[boardIndex])) {
+        console.log('Move failed: Invalid board index', { boardIndex });
+        return;
+      }
+
+      // Validate cell index
+      if (typeof newGameState[boardIndex][cellIndex] === 'undefined') {
+        console.log('Move failed: Invalid cell index', { cellIndex });
+        return;
+      }
+
+      // Check if cell is already occupied
+      if (newGameState[boardIndex][cellIndex] !== null) {
+        console.log('Move failed: Cell already occupied', { boardIndex, cellIndex });
+        return;
+      }
+
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
 
@@ -451,9 +499,23 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         }
       };
 
+      console.log('Attempting to update game state:', {
+        boardIndex,
+        cellIndex,
+        currentPlayer: gameData.currentPlayer,
+        nextPlayer: updateData.currentPlayer
+      });
+
       await set(gameRef, updateData);
+      console.log('Move successful');
     } catch (error) {
       console.error('Error making move:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       alert('Failed to make move. Please try again.');
     }
   };
