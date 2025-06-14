@@ -232,40 +232,58 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         const data = snapshot.val();
         if (!data) return;
 
-        // Update game state
-        if (Array.isArray(data.board)) {
-          setGameState(data.board);
-          setMiniWinners(
-            data.board.map((mini: MiniBoardState) => {
+        try {
+          // Update game state
+          if (Array.isArray(data.board)) {
+            const newBoard = data.board.map((mini: MiniBoardState) => 
+              Array.isArray(mini) ? [...mini] : Array(9).fill(null)
+            );
+            setGameState(newBoard);
+            
+            // Update mini winners
+            const newMiniWinners = newBoard.map((mini: MiniBoardState) => {
               const result = checkMiniWinner(mini);
               return result?.winner || null;
-            })
-          );
-        }
+            });
+            setMiniWinners(newMiniWinners);
+          }
 
-        // Update game status and player info
-        const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
-        setGameStatus(newStatus);
-        gameStatusRef.current = newStatus;
+          // Update game status
+          const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
+          setGameStatus(newStatus);
+          gameStatusRef.current = newStatus;
 
-        // Update player assignment
-        const myUid = auth.currentUser?.uid;
-        if (myUid) {
-          setIsPlayerX(data.players?.X === myUid);
-        }
+          // Update player assignment
+          const myUid = auth.currentUser?.uid;
+          if (myUid) {
+            const isX = data.players?.X === myUid;
+            setIsPlayerX(isX);
+          }
 
-        // Update game state
-        setCurrentPlayer(data.currentPlayer);
-        setActiveBoard(data.activeBoard);
-        setWinner(data.winner);
+          // Update game state
+          setCurrentPlayer(data.currentPlayer || 'X');
+          setActiveBoard(data.activeBoard);
+          
+          // Update winner
+          if (data.winner) {
+            setWinner(data.winner);
+          } else {
+            setWinner(null);
+          }
 
-        // Show start alert when game begins
-        if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
-          setShowStartAlert(true);
-          setTimeout(() => setShowStartAlert(false), 2000);
+          // Show start alert when game begins
+          if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
+            setShowStartAlert(true);
+            setTimeout(() => setShowStartAlert(false), 2000);
+          }
+        } catch (error) {
+          console.error('Error updating game state:', error);
         }
       });
-      return () => unsubscribe();
+
+      return () => {
+        unsubscribe();
+      };
     }
   }, [mode, gameId]);
 
@@ -384,16 +402,18 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
 
       // Create new game state
-      const newGameState = [...gameState];
+      const newGameState = gameData.board.map((mini: MiniBoardState) => 
+        Array.isArray(mini) ? [...mini] : Array(9).fill(null)
+      );
       newGameState[boardIndex] = [...newGameState[boardIndex]];
       newGameState[boardIndex][cellIndex] = currentPlayer;
 
       // Check for mini-board winner
       const miniWinner = checkMiniWinner(newGameState[boardIndex]);
-      const newMiniWinners = [...miniWinners];
-      if (miniWinner && !newMiniWinners[boardIndex]) {
-        newMiniWinners[boardIndex] = miniWinner.winner;
-      }
+      const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
+        const result = checkMiniWinner(mini);
+        return result?.winner || null;
+      });
 
       // Check for main board winner
       const mainWinner = checkMainBoardWinner(newMiniWinners);
@@ -405,7 +425,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
 
       // Update game in Firebase
-      await set(gameRef, {
+      const updateData = {
         ...gameData,
         board: newGameState,
         currentPlayer: currentPlayer === 'X' ? 'O' : 'X',
@@ -417,24 +437,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           cell: cellIndex,
           player: currentPlayer,
           timestamp: Date.now()
-        },
-        moveHistory: [...(gameData.moveHistory || []), {
-          board: boardIndex,
-          cell: cellIndex,
-          player: currentPlayer,
-          timestamp: Date.now()
-        }]
-      });
+        }
+      };
 
-      // Update local state
-      setGameState(newGameState);
-      setMiniWinners(newMiniWinners);
-      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
-      setActiveBoard(nextActiveBoard);
-      setMoveHistory([...moveHistory, { board: boardIndex, cell: cellIndex }]);
-      if (mainWinner) {
-        setWinner(mainWinner);
-      }
+      await set(gameRef, updateData);
     } catch (error) {
       console.error('Error making move:', error);
       alert('Failed to make move. Please try again.');
