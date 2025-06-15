@@ -245,11 +245,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           if (!data.board) {
             console.log('Initializing missing board');
             const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
-            set(ref(db, `games/${gameId}`), {
+            const updatedData = {
               ...data,
               board: initialBoard,
-              miniWinners: Array(9).fill(null)
-            });
+              miniWinners: Array(9).fill(null),
+              status: data.players.O ? 'playing' : 'waiting' // Update status if O has joined
+            };
+            set(gameRef, updatedData);
             return;
           }
 
@@ -275,8 +277,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           // Update game status
           const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
           console.log('Updating game status:', { old: gameStatus, new: newStatus });
-          setGameStatus(newStatus);
-          gameStatusRef.current = newStatus;
+          
+          // Force status to 'playing' if both players are present
+          const finalStatus = data.players.O ? 'playing' : newStatus;
+          setGameStatus(finalStatus);
+          gameStatusRef.current = finalStatus;
 
           // Update player assignment
           const myUid = auth.currentUser?.uid;
@@ -297,7 +302,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           }
 
           // Show start alert when game begins
-          if (newStatus === 'playing' && gameStatusRef.current === 'waiting') {
+          if (finalStatus === 'playing' && gameStatusRef.current === 'waiting') {
             console.log('Game is starting!');
             setShowStartAlert(true);
             setTimeout(() => setShowStartAlert(false), 2000);
@@ -312,7 +317,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         unsubscribe();
       };
     }
-  }, [mode, gameId, gameStatus]);
+  }, [mode, gameId]);
 
   const createGame = async (): Promise<void> => {
     try {
@@ -426,6 +431,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       console.log('Joining game with data:', JSON.stringify(updatedGameData, null, 2));
       await set(gameRef, updatedGameData);
 
+      // Update local state
       setGameId(id);
       setIsPlayerX(false);
       setGameStatus('playing');
@@ -696,7 +702,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         </div>
         <button
           onClick={() => {
-            if (gameId) remove(ref(database, `games/${gameId}`));
+            if (gameId) {
+              const db = getDatabase();
+              remove(ref(db, `games/${gameId}`));
+            }
             setGameId('');
             if (onBack) onBack();
           }}
