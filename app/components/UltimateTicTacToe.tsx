@@ -327,23 +327,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
       await set(gameRef, initialGameState);
+      console.log('Game created successfully (write issued to Firebase):', JSON.stringify(initialGameState, null, 2));
       
-      // Verify the game was created and board exists
-      let snapshot = await get(gameRef);
-      let savedGame = snapshot.val();
-      let tries = 0;
-      while ((!savedGame || !savedGame.board) && tries < 5) {
-        await new Promise(res => setTimeout(res, 200));
-        snapshot = await get(gameRef);
-        savedGame = snapshot.val();
-        tries++;
-      }
-      if (!savedGame || !savedGame.board) {
-        throw new Error('Failed to create game - board not initialized');
-      }
-      console.log('Game created successfully:', JSON.stringify(savedGame, null, 2));
-      
-      // Set local state
+      // Set local state and route. Real-time listener will update UI when board is available.
       setGameId(newGameId);
       setIsPlayerX(true);
       setGameStatus('waiting');
@@ -442,7 +428,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       console.error('Error joining game:', error);
       alert('Failed to join game. Please try again.');
     }
-  };
+  }; 
 
   const handleClick = (boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
