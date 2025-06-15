@@ -240,68 +240,42 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         console.log('Received game update:', JSON.stringify(data, null, 2));
 
         try {
-          // Initialize board if it doesn't exist
+          // Defensive: Initialize board if missing
           if (!data.board) {
             console.log('Initializing missing board');
             const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
-            const updatedData = {
+            set(gameRef, {
               ...data,
               board: initialBoard,
               miniWinners: Array(9).fill(null),
-              status: data.players.O ? 'playing' : 'waiting' // Update status if O has joined
-            };
-            set(gameRef, updatedData);
+              status: data.players && data.players.O ? 'playing' : 'waiting'
+            });
             return;
           }
 
-          // Update game state
-          const newBoard = data.board.map((mini: Player[] | null) => {
-            if (!Array.isArray(mini)) {
-              console.log('Invalid mini-board found:', mini);
-              return Array(9).fill(null);
-            }
-            return mini.map((cell: Player) => cell === 'X' || cell === 'O' ? cell : null);
-          });
-          
-          console.log('Processed board state:', JSON.stringify(newBoard, null, 2));
-          setGameState(newBoard);
-          
-          // Update mini winners
-          const newMiniWinners = newBoard.map((mini: MiniBoardState) => {
-            const result = checkMiniWinner(mini);
-            return result?.winner || null;
-          });
-          setMiniWinners(newMiniWinners);
-
-          // Update game status
-          const newStatus = (data.status || 'waiting') as 'waiting' | 'playing';
-          console.log('Updating game status:', { old: gameStatus, new: newStatus });
-          
-          // Force status to 'playing' if both players are present
-          const finalStatus = data.players.O ? 'playing' : newStatus;
-          setGameStatus(finalStatus);
-          gameStatusRef.current = finalStatus;
-
-          // Update player assignment
-          const myUid = auth.currentUser?.uid;
-          if (myUid) {
-            const isX = data.players?.X === myUid;
-            setIsPlayerX(isX);
+          // Always set gameStatus to 'playing' if both players are present
+          let status = data.status;
+          if (data.players && data.players.X && data.players.O) {
+            status = 'playing';
           }
+          setGameStatus(status);
+          gameStatusRef.current = status;
 
-          // Update game state
+          // Sync all local state
+          setGameState(data.board.map((mini: Player[] | null) => Array.isArray(mini) ? [...mini] : Array(9).fill(null)));
+          setMiniWinners(Array.isArray(data.miniWinners) ? data.miniWinners : Array(9).fill(null));
           setCurrentPlayer(data.currentPlayer || 'X');
           setActiveBoard(data.activeBoard);
-          
-          // Update winner
-          if (data.winner) {
-            setWinner(data.winner);
-          } else {
-            setWinner(null);
+          setWinner(data.winner || null);
+
+          // Set isPlayerX based on auth
+          const myUid = auth.currentUser?.uid;
+          if (myUid) {
+            setIsPlayerX(data.players?.X === myUid);
           }
 
           // Show start alert when game begins
-          if (finalStatus === 'playing' && gameStatusRef.current === 'waiting') {
+          if (status === 'playing' && gameStatusRef.current === 'waiting') {
             console.log('Game is starting!');
             setShowStartAlert(true);
             setTimeout(() => setShowStartAlert(false), 2000);
@@ -467,115 +441,32 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
-    if (!gameId || isPlayerX === null) {
-      console.log('Move failed: No game ID or player not assigned', { gameId, isPlayerX });
-      return;
-    }
-    
+    if (!gameId || isPlayerX === null) return;
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
-      
-      if (!snapshot.exists()) {
-        console.log('Move failed: Game not found', { gameId });
-        return;
-      }
-      
+      if (!snapshot.exists()) return;
       const gameData = snapshot.val();
-      console.log('Making move with game data:', JSON.stringify(gameData, null, 2));
-      
-      // Ensure board exists and is properly initialized
-      if (!gameData.board || !Array.isArray(gameData.board) || gameData.board.length !== 9) {
-        console.log('Move failed: Invalid board state', { 
-          board: gameData.board,
-          isArray: Array.isArray(gameData.board),
-          length: gameData.board?.length
-        });
-        return;
-      }
-
-      // Validate each mini-board
-      for (let i = 0; i < gameData.board.length; i++) {
-        if (!Array.isArray(gameData.board[i]) || gameData.board[i].length !== 9) {
-          console.log('Move failed: Invalid mini-board at index', i, {
-            miniBoard: gameData.board[i],
-            isArray: Array.isArray(gameData.board[i]),
-            length: gameData.board[i]?.length
-          });
-          return;
-        }
-      }
-
-      // For first move, ensure X can play
-      const isFirstMove = !gameData.lastMove;
-      if (isFirstMove && !isPlayerX) {
-        console.log('Move failed: Only X can make the first move');
-        return;
-      }
-
-      // Strictly enforce player turns
+      if (!gameData.board || !Array.isArray(gameData.board)) return;
+      if (gameData.status !== 'playing') return;
+      // Only allow move if it's your turn
       const isMyTurn = (isPlayerX && gameData.currentPlayer === 'X') || (!isPlayerX && gameData.currentPlayer === 'O');
-      if (!isMyTurn) {
-        console.log('Move failed: Not your turn', { 
-          isPlayerX, 
-          currentPlayer: gameData.currentPlayer,
-          isMyTurn 
-        });
-        return;
-      }
-
-      if (gameData.status !== 'playing') {
-        console.log('Move failed: Game not in playing state', { 
-          status: gameData.status,
-          expected: 'playing'
-        });
-        return;
-      }
-
-      // Create new game state with defensive checks
-      const newGameState = gameData.board.map((mini: MiniBoardState) => 
-        Array.isArray(mini) ? [...mini] : Array(9).fill(null)
-      );
-
-      // Validate board indices
-      if (!newGameState[boardIndex] || !Array.isArray(newGameState[boardIndex])) {
-        console.log('Move failed: Invalid board index', { boardIndex });
-        return;
-      }
-
-      // Validate cell index
-      if (typeof newGameState[boardIndex][cellIndex] === 'undefined') {
-        console.log('Move failed: Invalid cell index', { cellIndex });
-        return;
-      }
-
-      // Check if cell is already occupied
-      if (newGameState[boardIndex][cellIndex] !== null) {
-        console.log('Move failed: Cell already occupied', { boardIndex, cellIndex });
-        return;
-      }
-
-      // Make the move
-      newGameState[boardIndex] = [...newGameState[boardIndex]];
+      if (!isMyTurn) return;
+      // Validate move
+      if (gameData.board[boardIndex][cellIndex] !== null) return;
+      // Make move
+      const newGameState = gameData.board.map((mini: Player[]) => [...mini]);
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
-
-      // Calculate all mini-winners
       const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
         const result = checkMiniWinner(mini);
         return result?.winner || null;
       });
-
-      // Check for main board winner
       const mainWinner = checkMainBoardWinner(newMiniWinners);
-
-      // Determine next active board
       let nextActiveBoard: number | null = cellIndex;
       if (newMiniWinners[cellIndex] || isMiniBoardFull(newGameState[cellIndex])) {
         nextActiveBoard = null;
       }
-
-      // Update game in Firebase
       const updateData = {
         ...gameData,
         board: newGameState,
@@ -590,18 +481,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           timestamp: Date.now()
         }
       };
-
-      console.log('Updating game state with:', updateData);
       await set(gameRef, updateData);
-      console.log('Move successful');
     } catch (error) {
       console.error('Error making move:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-      }
       alert('Failed to make move. Please try again.');
     }
   };
@@ -689,7 +571,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     );
   }
 
-  if (mode === 'online' && gameStatus === 'waiting') {
+  if (mode === 'online' && (gameStatus === 'waiting' || !gameStatus) && !(gameState && gameState.length === 9 && isPlayerX !== null)) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
         <h1 className="text-3xl font-bold">Waiting for opponent...</h1>
