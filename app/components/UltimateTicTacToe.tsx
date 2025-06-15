@@ -251,7 +251,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               miniWinners: Array(9).fill(null),
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
-            set(gameRef, updatedData);
+            set(gameRef, updatedData)
+              .then(() => console.log('Board initialized in database'))
+              .catch((err) => console.error('Failed to initialize board in database', err));
             // Do NOT update local state here. Wait for the next real-time update.
             return;
           }
