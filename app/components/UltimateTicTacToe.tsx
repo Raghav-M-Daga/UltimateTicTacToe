@@ -317,7 +317,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         unsubscribe();
       };
     }
-  }, [mode, gameId]);
+  }, [mode, gameId, gameStatus]);
 
   const createGame = async (): Promise<void> => {
     try {
