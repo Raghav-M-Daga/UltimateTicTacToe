@@ -150,6 +150,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const [showStartAlert, setShowStartAlert] = useState(false);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
+    console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
     if (winner || (activeBoard !== null && activeBoard !== boardIndex && (!miniWinners[activeBoard] && !isMiniBoardFull(gameState[activeBoard])))) return;
     const newGameState = [...gameState];
     newGameState[boardIndex] = [...newGameState[boardIndex]];
@@ -259,6 +260,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             setCurrentPlayer('X');
             setActiveBoard(null);
             setWinner(null);
+            console.log('Board initialized and local state set:', initialBoard);
             return;
           }
 
@@ -271,11 +273,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           gameStatusRef.current = status;
 
           // Sync all local state
-          setGameState(data.board.map((mini: Player[] | null) => Array.isArray(mini) ? [...mini] : Array(9).fill(null)));
+          const safeBoard = data.board.map((mini: Player[] | null) => Array.isArray(mini) ? [...mini] : Array(9).fill(null));
+          setGameState(safeBoard);
           setMiniWinners(Array.isArray(data.miniWinners) ? data.miniWinners : Array(9).fill(null));
           setCurrentPlayer(data.currentPlayer || 'X');
           setActiveBoard(data.activeBoard);
           setWinner(data.winner || null);
+          console.log('Local state updated from real-time update. Current board:', safeBoard);
 
           // Set isPlayerX based on auth
           const myUid = auth.currentUser?.uid;
@@ -429,6 +433,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleClick = (boardIndex: number, cellIndex: number): void => {
+    console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
     if (winner) return;
     if (miniWinners[boardIndex]) return; // Prevent moves in won mini-boards
 
@@ -606,6 +611,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       </div>
     );
   }
+
+  // In the render, log the current gameState structure
+  console.log('Rendering UltimateTicTacToe, current gameState:', gameState);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4 relative">
