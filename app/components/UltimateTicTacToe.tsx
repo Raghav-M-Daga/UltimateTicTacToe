@@ -563,6 +563,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (onBack) onBack();
   };
 
+  // Before rendering the board, check if the board is ready
+  const isBoardReady =
+    Array.isArray(gameState) &&
+    gameState.length === 9 &&
+    gameState.every(mini => Array.isArray(mini) && mini.length === 9);
+
   if (mode === 'online' && !gameId) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
@@ -628,6 +634,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         >
           Cancel
         </button>
+      </div>
+    );
+  }
+
+  if (mode === 'online' && gameStatus === 'playing' && !isBoardReady) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
+        <h1 className="text-3xl font-bold">Preparing board...</h1>
+        <p className="text-lg">Please wait, setting up the game board...</p>
       </div>
     );
   }
@@ -747,10 +762,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 return (
                   <motion.button
                     key={cellIndex}
-                    onClick={() => handleClick(miniIndex, cellIndex)}
+                    onClick={() => isBoardReady && handleClick(miniIndex, cellIndex)}
                     className={`w-10 h-10 text-xl font-bold border border-gray-500 flex items-center justify-center transition-all duration-150 ${
                       isWinLine && boardWinner ? 'bg-opacity-100' : ''
-                    } ${!canPlay ? 'pointer-events-none opacity-60' : ''}`}
+                    } ${!canPlay || !isBoardReady ? 'pointer-events-none opacity-60' : ''}`}
                     style={{
                       color: getCellColor(cell),
                       backgroundColor:
@@ -765,7 +780,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.2 }}
-                    disabled={!canPlay}
+                    disabled={!canPlay || !isBoardReady}
                   >
                     {cell}
                   </motion.button>
