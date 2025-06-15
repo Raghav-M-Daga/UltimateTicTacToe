@@ -455,23 +455,42 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   };
 
   const handleOnlineMove = async (boardIndex: number, cellIndex: number): Promise<void> => {
-    if (!gameId || isPlayerX === null) return;
+    if (!gameId || isPlayerX === null) {
+      console.log('Move not allowed: missing gameId or isPlayerX');
+      return;
+    }
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
-      if (!snapshot.exists()) return;
+      if (!snapshot.exists()) {
+        console.log('Move not allowed: game does not exist');
+        return;
+      }
       const gameData = snapshot.val();
-      if (!gameData.board || !Array.isArray(gameData.board)) return;
-      if (gameData.status !== 'playing') return;
-      // Only allow move if it's your turn
+      if (!gameData.board || !Array.isArray(gameData.board)) {
+        console.log('Move not allowed: board missing or not array');
+        return;
+      }
+      if (gameData.status !== 'playing') {
+        console.log('Move not allowed: game not in playing state');
+        return;
+      }
       const isMyTurn = (isPlayerX && gameData.currentPlayer === 'X') || (!isPlayerX && gameData.currentPlayer === 'O');
-      if (!isMyTurn) return;
-      // Validate move
-      if (gameData.board[boardIndex][cellIndex] !== null) return;
-      // Make move
-      const newGameState = gameData.board.map((mini: Player[]) => [...mini]);
+      if (!isMyTurn) {
+        console.log('Move not allowed: not your turn');
+        return;
+      }
+      if (gameData.board[boardIndex][cellIndex] !== null) {
+        console.log('Move not allowed: cell already filled');
+        return;
+      }
+
+      // Deep copy the board
+      const newGameState: Player[][] = gameData.board.map((mini: Player[]) => mini.slice());
+      newGameState[boardIndex] = newGameState[boardIndex].slice();
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
+
       const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
         const result = checkMiniWinner(mini);
         return result?.winner || null;
@@ -495,7 +514,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           timestamp: Date.now()
         }
       };
+      console.log('Saving move to database:', updateData);
       await set(gameRef, updateData);
+      console.log('Move saved successfully');
     } catch (error) {
       console.error('Error making move:', error);
       alert('Failed to make move. Please try again.');
