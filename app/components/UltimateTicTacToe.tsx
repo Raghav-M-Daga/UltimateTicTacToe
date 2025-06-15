@@ -252,15 +252,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
             set(gameRef, updatedData);
-
-            // Optimistically update local state so the UI is responsive
-            setGameState(initialBoard);
-            setMiniWinners(Array(9).fill(null));
-            setGameStatus(updatedData.status);
-            setCurrentPlayer('X');
-            setActiveBoard(null);
-            setWinner(null);
-            console.log('Board initialized and local state set:', initialBoard);
+            // Do NOT update local state here. Wait for the next real-time update.
             return;
           }
 
@@ -312,9 +304,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       if (!newGameId) throw new Error('Failed to create game');
 
       // Initialize the board properly with nested arrays
-      const initialBoard = Array(9).fill(null).map(() => 
-        Array(9).fill(null)
-      );
+      const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
       
       // Create the initial game state
       const initialGameState = {
@@ -338,13 +328,19 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const gameRef = ref(db, `games/${newGameId}`);
       await set(gameRef, initialGameState);
       
-      // Verify the game was created
-      const snapshot = await get(gameRef);
-      if (!snapshot.exists()) {
-        throw new Error('Failed to create game - verification failed');
+      // Verify the game was created and board exists
+      let snapshot = await get(gameRef);
+      let savedGame = snapshot.val();
+      let tries = 0;
+      while ((!savedGame || !savedGame.board) && tries < 5) {
+        await new Promise(res => setTimeout(res, 200));
+        snapshot = await get(gameRef);
+        savedGame = snapshot.val();
+        tries++;
       }
-      
-      const savedGame = snapshot.val();
+      if (!savedGame || !savedGame.board) {
+        throw new Error('Failed to create game - board not initialized');
+      }
       console.log('Game created successfully:', JSON.stringify(savedGame, null, 2));
       
       // Set local state
@@ -374,11 +370,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     try {
       const db = getDatabase();
       const gameRef = ref(db, `games/${id}`);
-      const snapshot = await get(gameRef);
+      let snapshot = await get(gameRef);
       if (!snapshot.exists()) {
         throw new Error('Game not found');
       }
-      const gameData = snapshot.val();
+      let gameData = snapshot.val();
       const myUid = auth.currentUser?.uid;
       if (!myUid) throw new Error('Not authenticated');
 
@@ -398,6 +394,22 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       // Initialize board if it doesn't exist
       if (!gameData.board) {
         gameData.board = Array(9).fill(null).map(() => Array(9).fill(null));
+        await set(gameRef, {
+          ...gameData,
+          board: gameData.board,
+          miniWinners: Array(9).fill(null),
+        });
+        // Wait for the board to exist
+        let tries = 0;
+        while ((!gameData || !gameData.board) && tries < 5) {
+          await new Promise(res => setTimeout(res, 200));
+          snapshot = await get(gameRef);
+          gameData = snapshot.val();
+          tries++;
+        }
+        if (!gameData || !gameData.board) {
+          throw new Error('Failed to join game - board not initialized');
+        }
       }
 
       // Join as player O
@@ -469,6 +481,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
       const gameData = snapshot.val();
       if (!gameData.board || !Array.isArray(gameData.board)) {
+        alert('The board is not ready yet. Please wait a moment and try again.');
         console.log('Move not allowed: board missing or not array');
         return;
       }
