@@ -244,12 +244,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           if (!data.board) {
             console.log('Initializing missing board');
             const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
-            set(gameRef, {
+            const updatedData = {
               ...data,
               board: initialBoard,
               miniWinners: Array(9).fill(null),
               status: data.players && data.players.O ? 'playing' : 'waiting'
-            });
+            };
+            set(gameRef, updatedData);
+
+            // Optimistically update local state so the UI is responsive
+            setGameState(initialBoard);
+            setMiniWinners(Array(9).fill(null));
+            setGameStatus(updatedData.status);
+            setCurrentPlayer('X');
+            setActiveBoard(null);
+            setWinner(null);
             return;
           }
 
