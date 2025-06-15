@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { database } from '../../firebaseConfig';
-import { ref, set, remove, get, getDatabase, onValue } from 'firebase/database';
-import { useRouter } from 'next/navigation';
 import { auth } from '../firebaseConfig';
+import { getDatabase, ref, set, get, remove, onValue } from 'firebase/database';
+import { useRouter } from 'next/navigation';
 
 // Types
 type Player = 'X' | 'O' | null;
@@ -628,7 +627,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     newGameState[lastMove.board][lastMove.cell] = null;
 
     setGameState(newGameState);
-    setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+    setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X'); 
     setActiveBoard(lastMove.board);
     setMoveHistory(newMoveHistory);
     setWinner(null);
