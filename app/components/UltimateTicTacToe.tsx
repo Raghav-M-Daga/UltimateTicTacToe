@@ -128,6 +128,43 @@ const getStrongMove = (
 // Helper to check if a mini-board is full
 const isMiniBoardFull = (mini: MiniBoardState) => mini.every(cell => cell !== null);
 
+// Helper to convert board object to array for rendering
+function boardObjToArr(boardObj: any): Player[][] {
+  return Object.keys(boardObj)
+    .sort((a, b) => Number(a) - Number(b))
+    .map(i => {
+      const mini = boardObj[i];
+      return Object.keys(mini)
+        .sort((a, b) => Number(a) - Number(b))
+        .map(j => mini[j]);
+    });
+}
+
+// Helper to convert miniWinners object to array
+function miniWinnersObjToArr(miniObj: any): (Player | null)[] {
+  return Object.keys(miniObj)
+    .sort((a, b) => Number(a) - Number(b))
+    .map(i => miniObj[i]);
+}
+
+// Helper to create initial board and miniWinners as objects
+function createInitialBoardObj() {
+  const board: Record<string, Record<string, Player>> = {};
+  for (let i = 0; i < 9; i++) {
+    board[i] = {};
+    for (let j = 0; j < 9; j++) {
+      board[i][j] = null;
+    }
+  }
+  return board;
+}
+
+function createInitialMiniWinnersObj() {
+  const obj: Record<string, Player | null> = {};
+  for (let i = 0; i < 9; i++) obj[i] = null;
+  return obj;
+}
+
 interface UltimateTicTacToeProps {
   mode: GameMode;
   onBack?: () => void;
@@ -244,11 +281,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           // Defensive: Initialize board if missing
           if (!data.board) {
             console.log('Initializing missing board');
-            const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+            const initialBoard = createInitialBoardObj();
             const updatedData = {
               ...data,
               board: initialBoard,
-              miniWinners: Array(9).fill(null),
+              miniWinners: createInitialMiniWinnersObj(),
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
             set(gameRef, updatedData)
@@ -266,10 +303,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           setGameStatus(status);
           gameStatusRef.current = status;
 
-          // Sync all local state
-          const safeBoard = data.board.map((mini: Player[] | null) => Array.isArray(mini) ? [...mini] : Array(9).fill(null));
+          // Convert board and miniWinners objects to arrays for rendering
+          const safeBoard = boardObjToArr(data.board);
           setGameState(safeBoard);
-          setMiniWinners(Array.isArray(data.miniWinners) ? data.miniWinners : Array(9).fill(null));
+          setMiniWinners(miniWinnersObjToArr(data.miniWinners));
           setCurrentPlayer(data.currentPlayer || 'X');
           setActiveBoard(data.activeBoard);
           setWinner(data.winner || null);
@@ -305,8 +342,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
-      // Initialize the board properly with nested arrays
-      const initialBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+      // Initialize the board and miniWinners as objects
+      const initialBoard = createInitialBoardObj();
+      const initialMiniWinners = createInitialMiniWinnersObj();
       
       // Create the initial game state
       const initialGameState = {
@@ -319,7 +357,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           O: null
         },
         status: 'waiting',
-        miniWinners: Array(9).fill(null),
+        miniWinners: initialMiniWinners,
         lastMove: null,
         createdAt: Date.now()
       };
@@ -329,15 +367,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
       await set(gameRef, initialGameState)
-        .then(() => console.log('Game created in DB'))
+        .then(() => console.log('Game created in DB:', initialGameState))
         .catch((err) => console.error('Failed to create game in DB', err));
       
       // Set local state and route. Real-time listener will update UI when board is available.
       setGameId(newGameId);
       setIsPlayerX(true);
       setGameStatus('waiting');
-      setGameState(initialBoard);
-      setMiniWinners(Array(9).fill(null));
+      setGameState(boardObjToArr(initialBoard));
+      setMiniWinners(miniWinnersObjToArr(initialMiniWinners));
       setCurrentPlayer('X');
       setActiveBoard(null);
       setWinner(null);
@@ -382,11 +420,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
       // Initialize board if it doesn't exist
       if (!gameData.board) {
-        gameData.board = Array(9).fill(null).map(() => Array(9).fill(null));
+        gameData.board = createInitialBoardObj();
         await set(gameRef, {
           ...gameData,
           board: gameData.board,
-          miniWinners: Array(9).fill(null),
+          miniWinners: createInitialMiniWinnersObj(),
         });
         // Wait for the board to exist
         let tries = 0;
@@ -410,7 +448,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           O: myUid
         },
         status: 'playing',
-        miniWinners: gameData.miniWinners || Array(9).fill(null),
+        miniWinners: gameData.miniWinners || createInitialMiniWinnersObj(),
         lastMove: gameData.lastMove || null,
         currentPlayer: 'X' // Ensure X starts
       };
@@ -422,8 +460,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setGameId(id);
       setIsPlayerX(false);
       setGameStatus('playing');
-      setGameState(updatedGameData.board);
-      setMiniWinners(updatedGameData.miniWinners);
+      setGameState(boardObjToArr(updatedGameData.board));
+      setMiniWinners(miniWinnersObjToArr(updatedGameData.miniWinners));
       setCurrentPlayer('X');
       setActiveBoard(null);
       setWinner(null);
@@ -469,9 +507,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         return;
       }
       const gameData = snapshot.val();
-      if (!gameData.board || !Array.isArray(gameData.board)) {
+      if (!gameData.board) {
         alert('The board is not ready yet. Please wait a moment and try again.');
-        console.log('Move not allowed: board missing or not array');
+        console.log('Move not allowed: board missing');
         return;
       }
       if (gameData.status !== 'playing') {
@@ -488,18 +526,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         return;
       }
 
-      // Deep copy the board
-      const newGameState: Player[][] = gameData.board.map((mini: Player[]) => mini.slice());
-      newGameState[boardIndex] = newGameState[boardIndex].slice();
+      // Deep copy the board object
+      const newGameState: Record<string, Record<string, Player>> = JSON.parse(JSON.stringify(gameData.board));
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
 
-      const newMiniWinners = newGameState.map((mini: MiniBoardState) => {
-        const result = checkMiniWinner(mini);
-        return result?.winner || null;
-      });
-      const mainWinner = checkMainBoardWinner(newMiniWinners);
+      // Update miniWinners as object
+      const newMiniWinners: Record<string, Player | null> = { ...gameData.miniWinners };
+      const miniArr = Object.values(newGameState[boardIndex]);
+      const miniWinner = checkMiniWinner(miniArr as Player[]);
+      if (miniWinner) newMiniWinners[boardIndex] = miniWinner.winner;
+      else newMiniWinners[boardIndex] = null;
+
+      // Check for main board winner
+      const mainWinner = checkMainBoardWinner(Object.values(newMiniWinners));
       let nextActiveBoard: number | null = cellIndex;
-      if (newMiniWinners[cellIndex] || isMiniBoardFull(newGameState[cellIndex])) {
+      if (newMiniWinners[cellIndex] || isMiniBoardFull(Object.values(newGameState[cellIndex]) as Player[])) {
         nextActiveBoard = null;
       }
       const updateData = {
