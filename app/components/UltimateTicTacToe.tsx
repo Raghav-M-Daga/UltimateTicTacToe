@@ -285,7 +285,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               miniWinners: initialMiniWinners,
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
-            set(gameRef, updatedData)
+            set(gameRef, JSON.parse(JSON.stringify(updatedData)))
               .then(() => console.log('Board initialized in database'))
               .catch((err) => console.error('Failed to initialize board in database', err));
             // Do NOT update local state here. Wait for the next real-time update.
@@ -359,7 +359,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
-      await set(gameRef, initialGameState)
+      await set(gameRef, JSON.parse(JSON.stringify(initialGameState)))
         .then(() => console.log('Game created in DB:', initialGameState))
         .catch((err) => console.error('Failed to create game in DB', err));
       
@@ -414,11 +414,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       // Initialize board if it doesn't exist
       if (!gameData.board) {
         gameData.board = initialBoard;
-        await set(gameRef, {
+        await set(gameRef, JSON.parse(JSON.stringify({
           ...gameData,
           board: gameData.board,
           miniWinners: initialMiniWinners,
-        });
+        }))); // Wait for the board to exist
         // Wait for the board to exist
         let tries = 0;
         while ((!gameData || !gameData.board) && tries < 5) {
@@ -447,7 +447,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       };
 
       console.log('Joining game with data:', JSON.stringify(updatedGameData, null, 2));
-      await set(gameRef, updatedGameData);
+      await set(gameRef, JSON.parse(JSON.stringify(updatedGameData)));
 
       // Update local state
       setGameId(id);
@@ -551,7 +551,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         }
       };
       console.log('Saving move to database:', updateData);
-      await set(gameRef, updateData);
+      await set(gameRef, JSON.parse(JSON.stringify(updateData)));
       console.log('Move saved successfully');
     } catch (error) {
       console.error('Error making move:', error);
