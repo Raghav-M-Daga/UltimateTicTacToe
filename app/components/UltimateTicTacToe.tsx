@@ -129,7 +129,7 @@ const getStrongMove = (
 const isMiniBoardFull = (mini: MiniBoardState) => mini.every(cell => cell !== null);
 
 // Helper to convert board object to array for rendering
-function boardObjToArr(boardObj: any): Player[][] {
+function boardObjToArr(boardObj: Record<string, Record<string, Player>>): Player[][] {
   return Object.keys(boardObj)
     .sort((a, b) => Number(a) - Number(b))
     .map(i => {
@@ -141,7 +141,7 @@ function boardObjToArr(boardObj: any): Player[][] {
 }
 
 // Helper to convert miniWinners object to array
-function miniWinnersObjToArr(miniObj: any): (Player | null)[] {
+function miniWinnersObjToArr(miniObj: Record<string, Player | null>): (Player | null)[] {
   return Object.keys(miniObj)
     .sort((a, b) => Number(a) - Number(b))
     .map(i => miniObj[i]);
