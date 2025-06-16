@@ -586,7 +586,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         }
       };
       console.log('Saving move to database:', updateData);
-      await set(gameRef, JSON.parse(JSON.stringify(updateData)));
+      await set(gameRef, updateData);
       console.log('Move saved successfully');
     } catch (error) {
       console.error('Error making move:', error);
