@@ -328,8 +328,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
-      await set(gameRef, initialGameState);
-      console.log('Game created successfully (write issued to Firebase):', JSON.stringify(initialGameState, null, 2));
+      await set(gameRef, initialGameState)
+        .then(() => console.log('Game created in DB'))
+        .catch((err) => console.error('Failed to create game in DB', err));
       
       // Set local state and route. Real-time listener will update UI when board is available.
       setGameId(newGameId);
