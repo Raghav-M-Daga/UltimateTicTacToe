@@ -296,6 +296,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               ...data,
               board: initialBoard,
               miniWinners: initialMiniWinners,
+              boardArray: Array(9).fill(Array(9).fill(0)),
+              miniWinnersArray: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+              test: [0, 0, 0, 0, 0],
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
             set(gameRef, JSON.parse(JSON.stringify(updatedData)))
@@ -365,7 +368,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         status: 'waiting',
         miniWinners: initialMiniWinners,
         lastMove: null,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        test: [0, 0, 0, 0, 0],
+        miniWinnersArray: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        boardArray: Array(9).fill(Array(9).fill(0))
       };
 
       console.log('Creating new game with state:', JSON.stringify(initialGameState, null, 2));
@@ -536,12 +542,24 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newGameState: Record<string, Record<string, Player>> = JSON.parse(JSON.stringify(gameData.board));
       newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
 
+      // Update boardArray
+      const newBoardArray = JSON.parse(JSON.stringify(gameData.boardArray || Array(9).fill(Array(9).fill(0))));
+      newBoardArray[boardIndex] = [...newBoardArray[boardIndex]];
+      newBoardArray[boardIndex][cellIndex] = gameData.currentPlayer === 'X' ? 1 : 2;
+
       // Update miniWinners as object
       const newMiniWinners: Record<string, Player | null> = { ...gameData.miniWinners };
       const miniArr = Object.values(newGameState[boardIndex]);
       const miniWinner = checkMiniWinner(miniArr as Player[]);
-      if (miniWinner) newMiniWinners[boardIndex] = miniWinner.winner;
-      else newMiniWinners[boardIndex] = null;
+      if (miniWinner) {
+        newMiniWinners[boardIndex] = miniWinner.winner;
+        // Update miniWinnersArray
+        const newMiniWinnersArray = [...(gameData.miniWinnersArray || [0, 0, 0, 0, 0, 0, 0, 0, 0])];
+        newMiniWinnersArray[boardIndex] = miniWinner.winner === 'X' ? 1 : 2;
+        gameData.miniWinnersArray = newMiniWinnersArray;
+      } else {
+        newMiniWinners[boardIndex] = null;
+      }
 
       // Check for main board winner
       const mainWinner = checkMainBoardWinner(Object.values(newMiniWinners));
@@ -549,6 +567,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       if (newMiniWinners[cellIndex] || isMiniBoardFull(Object.values(newGameState[cellIndex]) as Player[])) {
         nextActiveBoard = null;
       }
+
       const updateData = {
         ...gameData,
         board: boardArrToObj(Object.values(newGameState).map(mini => Object.values(mini)) as BoardState),
@@ -556,6 +575,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         activeBoard: nextActiveBoard,
         winner: mainWinner,
         miniWinners: newMiniWinners,
+        boardArray: newBoardArray,
+        miniWinnersArray: gameData.miniWinnersArray,
+        test: gameData.test,
         lastMove: {
           board: boardIndex,
           cell: cellIndex,
