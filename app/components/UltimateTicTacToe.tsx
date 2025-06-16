@@ -568,7 +568,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         nextActiveBoard = null;
       }
 
-      const updateData = {
+      // Create the update data
+      const gameUpdate = {
         ...gameData,
         board: boardArrToObj(Object.values(newGameState).map(mini => Object.values(mini)) as BoardState),
         currentPlayer: gameData.currentPlayer === 'X' ? 'O' : 'X',
@@ -585,8 +586,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           timestamp: Date.now()
         }
       };
-      console.log('Saving move to database:', updateData);
-      await set(gameRef, updateData);
+
+      console.log('Saving move to database:', gameUpdate);
+      await set(gameRef, gameUpdate);
       console.log('Move saved successfully');
     } catch (error) {
       console.error('Error making move:', error);
