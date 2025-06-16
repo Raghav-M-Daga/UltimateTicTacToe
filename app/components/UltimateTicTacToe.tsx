@@ -147,23 +147,21 @@ function miniWinnersObjToArr(miniObj: Record<string, Player | null>): (Player | 
     .map(i => miniObj[i]);
 }
 
-// Helper to create initial board and miniWinners as objects
-function createInitialBoardObj() {
-  const board: Record<string, Record<string, Player>> = {};
-  for (let i = 0; i < 9; i++) {
-    board[i] = {};
-    for (let j = 0; j < 9; j++) {
-      board[i][j] = null;
-    }
-  }
-  return board;
-}
-
-function createInitialMiniWinnersObj() {
-  const obj: Record<string, Player | null> = {};
-  for (let i = 0; i < 9; i++) obj[i] = null;
-  return obj;
-}
+// Hardcoded initial board and miniWinners objects
+const initialBoard = {
+  "0": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "1": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "2": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "3": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "4": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "5": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "6": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "7": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
+  "8": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null }
+};
+const initialMiniWinners = {
+  "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null
+};
 
 interface UltimateTicTacToeProps {
   mode: GameMode;
@@ -281,11 +279,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           // Defensive: Initialize board if missing
           if (!data.board) {
             console.log('Initializing missing board');
-            const initialBoard = createInitialBoardObj();
             const updatedData = {
               ...data,
               board: initialBoard,
-              miniWinners: createInitialMiniWinnersObj(),
+              miniWinners: initialMiniWinners,
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
             set(gameRef, updatedData)
@@ -342,11 +339,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
-      // Initialize the board and miniWinners as objects
-      const initialBoard = createInitialBoardObj();
-      const initialMiniWinners = createInitialMiniWinnersObj();
-      
-      // Create the initial game state
+      // Use hardcoded initialBoard and initialMiniWinners
       const initialGameState = {
         board: initialBoard,
         currentPlayer: 'X',
@@ -420,11 +413,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
       // Initialize board if it doesn't exist
       if (!gameData.board) {
-        gameData.board = createInitialBoardObj();
+        gameData.board = initialBoard;
         await set(gameRef, {
           ...gameData,
           board: gameData.board,
-          miniWinners: createInitialMiniWinnersObj(),
+          miniWinners: initialMiniWinners,
         });
         // Wait for the board to exist
         let tries = 0;
@@ -448,7 +441,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           O: myUid
         },
         status: 'playing',
-        miniWinners: gameData.miniWinners || createInitialMiniWinnersObj(),
+        miniWinners: gameData.miniWinners || initialMiniWinners,
         lastMove: gameData.lastMove || null,
         currentPlayer: 'X' // Ensure X starts
       };
