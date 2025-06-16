@@ -168,8 +168,21 @@ interface UltimateTicTacToeProps {
   onBack?: () => void;
 }
 
+function boardArrToObj(boardArr: BoardState): Record<string, Record<string, Player>> {
+  const obj: Record<string, Record<string, Player>> = {};
+  boardArr.forEach((mini, i) => {
+    obj[i] = {};
+    mini.forEach((cell, j) => {
+      obj[i][j] = cell;
+    });
+  });
+  return obj;
+}
+
 export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToeProps) {
-  const [gameState, setGameState] = useState<BoardState>(Array(9).fill(Array(9).fill(null)));
+  const [gameState, setGameState] = useState<BoardState>(
+    Array.from({ length: 9 }, () => Array(9).fill(null))
+  );  
   const [activeBoard, setActiveBoard] = useState<number | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player>('X');
   const [winner, setWinner] = useState<{ winner: Player; line: number[] } | null>(null);
@@ -538,7 +551,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       }
       const updateData = {
         ...gameData,
-        board: newGameState,
+        board: boardArrToObj(Object.values(newGameState).map(mini => Object.values(mini)) as BoardState),
         currentPlayer: gameData.currentPlayer === 'X' ? 'O' : 'X',
         activeBoard: nextActiveBoard,
         winner: mainWinner,
