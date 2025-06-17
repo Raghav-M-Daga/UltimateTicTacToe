@@ -168,17 +168,6 @@ interface UltimateTicTacToeProps {
   onBack?: () => void;
 }
 
-function boardArrToObj(boardArr: BoardState): Record<string, Record<string, Player>> {
-  const obj: Record<string, Record<string, Player>> = {};
-  boardArr.forEach((mini, i) => {
-    obj[i] = {};
-    mini.forEach((cell, j) => {
-      obj[i][j] = cell;
-    });
-  });
-  return obj;
-}
-
 export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToeProps) {
   const [gameState, setGameState] = useState<BoardState>(
     Array.from({ length: 9 }, () => Array(9).fill(null))
