@@ -551,12 +551,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newMiniWinners: Record<string, Player | null> = { ...gameData.miniWinners };
       const miniArr = Object.values(newGameState[boardIndex]);
       const miniWinner = checkMiniWinner(miniArr as Player[]);
+      const newMiniWinnersArray = [...(gameData.miniWinnersArray || [0, 0, 0, 0, 0, 0, 0, 0, 0])];
       if (miniWinner) {
         newMiniWinners[boardIndex] = miniWinner.winner;
         // Update miniWinnersArray
-        const newMiniWinnersArray = [...(gameData.miniWinnersArray || [0, 0, 0, 0, 0, 0, 0, 0, 0])];
         newMiniWinnersArray[boardIndex] = miniWinner.winner === 'X' ? 1 : 2;
-        gameData.miniWinnersArray = newMiniWinnersArray;
       } else {
         newMiniWinners[boardIndex] = null;
       }
@@ -577,7 +576,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         winner: mainWinner,
         miniWinners: newMiniWinners,
         boardArray: newBoardArray,
-        miniWinnersArray: gameData.miniWinnersArray,
+        miniWinnersArray: newMiniWinnersArray,
         test: gameData.test,
         lastMove: {
           board: boardIndex,
