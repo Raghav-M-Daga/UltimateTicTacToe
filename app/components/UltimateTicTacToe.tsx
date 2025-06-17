@@ -627,17 +627,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     gameState.length === 9 &&
     gameState.every(mini => Array.isArray(mini) && mini.length === 9);
 
-  // Helper function to convert boardArray values to X/O
-  const getCellValue = (value: number | null): Player => {
-    if (value === null) return null;
-    return value === 1 ? 'X' : value === 2 ? 'O' : null;
-  };
-
-  // Helper function to convert X/O to boardArray values
-  const getCellNumber = (value: Player): number => {
-    return value === 'X' ? 1 : value === 'O' ? 2 : 0;
-  };
-
   // Helper function to check if a board is playable
   const isBoardPlayable = (boardIndex: number): boolean => {
     if (activeBoard === null) return true;
@@ -768,12 +757,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
                   {isPlayerX && moveHistory.length === 0 
-                    ? "It's your turn! Make your first move anywhere on the board."
-                    : "It's your turn! Make your move."}
+                    ? "It&apos;s your turn! Make your first move anywhere on the board."
+                    : "It&apos;s your turn! Make your move."}
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
-                  Waiting for opponent's move...
+                  Waiting for opponent&apos;s move...
                 </p>
               )}
             </div>
