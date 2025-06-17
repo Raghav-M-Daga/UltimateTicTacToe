@@ -486,13 +486,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const handleClick = (boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
     if (winner) return;
-    if (miniWinners[boardIndex]) return; // Prevent moves in won mini-boards
+    // Convert miniWinners to array format for comparison
+    const miniWinnersArray = miniWinners.map(w => w === 'X' ? 1 : w === 'O' ? 2 : 0);
+    if (miniWinnersArray[boardIndex] !== 0) return; // Prevent moves in won mini-boards
 
     // Enforce forced mini-board logic for local/single modes
     if ((mode === 'single' || mode === 'multi')) {
       if (activeBoard !== null && activeBoard !== boardIndex) {
         // If forced board is not the one being played, check if forced board is won or full
-        if (!miniWinners[activeBoard] && !isMiniBoardFull(gameState[activeBoard])) {
+        if (miniWinnersArray[activeBoard] === 0 && !isMiniBoardFull(gameState[activeBoard])) {
           return; // Not allowed to play here
         }
       }
@@ -519,7 +521,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         return;
       }
       const gameData = snapshot.val();
-      if (!gameData.board) {
+      if (!gameData.boardArray) {
         alert('The board is not ready yet. Please wait a moment and try again.');
         console.log('Move not allowed: board missing');
         return;
@@ -533,48 +535,36 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         console.log('Move not allowed: not your turn');
         return;
       }
-      if (gameData.board[boardIndex][cellIndex] !== null) {
+      if (gameData.boardArray[boardIndex][cellIndex] !== 0) {
         console.log('Move not allowed: cell already filled');
         return;
       }
 
-      // Deep copy the board object
-      const newGameState: Record<string, Record<string, Player>> = JSON.parse(JSON.stringify(gameData.board));
-      newGameState[boardIndex][cellIndex] = gameData.currentPlayer;
-
       // Update boardArray
-      const newBoardArray = JSON.parse(JSON.stringify(gameData.boardArray || Array(9).fill(Array(9).fill(0))));
+      const newBoardArray = JSON.parse(JSON.stringify(gameData.boardArray));
       newBoardArray[boardIndex] = [...newBoardArray[boardIndex]];
       newBoardArray[boardIndex][cellIndex] = gameData.currentPlayer === 'X' ? 1 : 2;
 
-      // Update miniWinners as object
-      const newMiniWinners: Record<string, Player | null> = { ...gameData.miniWinners };
-      const miniArr = Object.values(newGameState[boardIndex]);
-      const miniWinner = checkMiniWinner(miniArr as Player[]);
-      const newMiniWinnersArray = [...(gameData.miniWinnersArray || [0, 0, 0, 0, 0, 0, 0, 0, 0])];
+      // Check for mini board winner
+      const newMiniWinnersArray = [...gameData.miniWinnersArray];
+      const miniWinner = checkMiniWinner(newBoardArray[boardIndex].map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null));
       if (miniWinner) {
-        newMiniWinners[boardIndex] = miniWinner.winner;
-        // Update miniWinnersArray
         newMiniWinnersArray[boardIndex] = miniWinner.winner === 'X' ? 1 : 2;
-      } else {
-        newMiniWinners[boardIndex] = null;
       }
 
       // Check for main board winner
-      const mainWinner = checkMainBoardWinner(Object.values(newMiniWinners));
+      const mainWinner = checkMainBoardWinner(newMiniWinnersArray.map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null));
       let nextActiveBoard: number | null = cellIndex;
-      if (newMiniWinners[cellIndex] || isMiniBoardFull(Object.values(newGameState[cellIndex]) as Player[])) {
+      if (newMiniWinnersArray[cellIndex] !== 0 || isMiniBoardFull(newBoardArray[cellIndex].map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null))) {
         nextActiveBoard = null;
       }
 
       // Create the update data
       const gameUpdate = {
         ...gameData,
-        board: boardArrToObj(Object.values(newGameState).map(mini => Object.values(mini)) as BoardState),
         currentPlayer: gameData.currentPlayer === 'X' ? 'O' : 'X',
         activeBoard: nextActiveBoard,
         winner: mainWinner,
-        miniWinners: newMiniWinners,
         boardArray: newBoardArray,
         miniWinnersArray: newMiniWinnersArray,
         test: gameData.test,
