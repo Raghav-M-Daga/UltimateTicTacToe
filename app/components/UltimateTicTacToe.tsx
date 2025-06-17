@@ -279,12 +279,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
         try {
           // Defensive: Initialize board if missing
-          if (!data.board) {
+          if (!data.boardArray) {
             console.log('Initializing missing board');
             const updatedData = {
               ...data,
-              board: initialBoard,
-              miniWinners: initialMiniWinners,
               boardArray: Array(9).fill(Array(9).fill(0)),
               miniWinnersArray: [0, 0, 0, 0, 0, 0, 0, 0, 0],
               test: [0, 0, 0, 0, 0],
@@ -305,10 +303,18 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           setGameStatus(status);
           gameStatusRef.current = status;
 
-          // Convert board and miniWinners objects to arrays for rendering
-          const safeBoard = boardObjToArr(data.board);
+          // Convert boardArray to gameState format
+          const safeBoard = data.boardArray.map((row: number[]) => 
+            row.map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null)
+          );
           setGameState(safeBoard);
-          setMiniWinners(miniWinnersObjToArr(data.miniWinners));
+          
+          // Convert miniWinnersArray to miniWinners format
+          const safeMiniWinners = data.miniWinnersArray.map((cell: number) => 
+            cell === 1 ? 'X' : cell === 2 ? 'O' : null
+          );
+          setMiniWinners(safeMiniWinners);
+          
           setCurrentPlayer(data.currentPlayer || 'X');
           setActiveBoard(data.activeBoard);
           setWinner(data.winner || null);
@@ -621,6 +627,27 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     gameState.length === 9 &&
     gameState.every(mini => Array.isArray(mini) && mini.length === 9);
 
+  // Helper function to convert boardArray values to X/O
+  const getCellValue = (value: number | null): Player => {
+    if (value === null) return null;
+    return value === 1 ? 'X' : value === 2 ? 'O' : null;
+  };
+
+  // Helper function to convert X/O to boardArray values
+  const getCellNumber = (value: Player): number => {
+    return value === 'X' ? 1 : value === 'O' ? 2 : 0;
+  };
+
+  // Helper function to check if a board is playable
+  const isBoardPlayable = (boardIndex: number): boolean => {
+    if (activeBoard === null) return true;
+    if (activeBoard === boardIndex) return true;
+    const miniWinnersArray = miniWinners.map(w => w === 'X' ? 1 : w === 'O' ? 2 : 0);
+    if (miniWinnersArray[activeBoard] !== 0) return true;
+    if (isMiniBoardFull(gameState[activeBoard])) return true;
+    return false;
+  };
+
   if (mode === 'online' && !gameId) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4 p-4">
@@ -746,7 +773,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
-                  Waiting for opponent&apos;s move...
+                  Waiting for opponent's move...
                 </p>
               )}
             </div>
@@ -786,7 +813,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           const boardWinner = miniWinners[miniIndex];
           const miniWin = boardWinner && checkMiniWinner(mini);
           const winLine = miniWin ? miniWin.line : [];
-          const isActive = activeBoard === null || activeBoard === miniIndex;
+          const isActive = isBoardPlayable(miniIndex);
           const isFirstMove = moveHistory.length === 0 && isPlayerX && currentPlayer === 'X';
           
           return (
