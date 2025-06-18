@@ -150,6 +150,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const gameStatusRef = useRef<'waiting' | 'playing'>('waiting');
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing'>('waiting');
   const [showStartAlert, setShowStartAlert] = useState(false);
+  const [lastMove, setLastMove] = useState<{board: number, cell: number} | null>(null);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
@@ -282,6 +283,17 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           setCurrentPlayer(data.currentPlayer || 'X');
           setActiveBoard(data.activeBoard);
           setWinner(data.winner || null);
+          
+          // Track the last move for highlighting
+          if (data.lastMove) {
+            setLastMove({
+              board: data.lastMove.board,
+              cell: data.lastMove.cell
+            });
+          } else {
+            setLastMove(null);
+          }
+          
           console.log('Local state updated from real-time update. Current board:', safeBoard);
 
           // Set isPlayerX based on auth
@@ -607,7 +619,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   // Helper function to check if a board is playable
   const isBoardPlayable = (boardIndex: number): boolean => {
-    // If no active board is set, all boards are playable
+    // If no active board is set, all boards are playable (first move)
     if (activeBoard === null) return true;
     
     // If this is the active board, it's playable
@@ -620,6 +632,76 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     
     // Otherwise, only the active board is playable
     return false;
+  };
+
+  // Helper function to check if a cell was the last move
+  const isLastMove = (boardIndex: number, cellIndex: number): boolean => {
+    if (!lastMove) return false;
+    return lastMove.board === boardIndex && lastMove.cell === cellIndex;
+  };
+
+  // Function to copy game ID
+  const copyGameId = async () => {
+    if (gameId) {
+      try {
+        await navigator.clipboard.writeText(gameId);
+        alert('Game ID copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy game ID:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = gameId;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Game ID copied to clipboard!');
+      }
+    }
+  };
+
+  // Function to reset the game
+  const resetOnlineGame = async () => {
+    if (!gameId) return;
+    
+    try {
+      const db = getDatabase();
+      const gameRef = ref(db, `games/${gameId}`);
+      
+      // Reset the game state in database
+      const resetState = {
+        currentPlayer: 'X',
+        activeBoard: null,
+        winner: null,
+        players: {
+          X: auth.currentUser?.uid,
+          O: null
+        },
+        status: 'waiting',
+        lastMove: null,
+        createdAt: Date.now(),
+        test: [0, 0, 0, 0, 0],
+        miniWinnersArray: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        boardArray: Array(9).fill(Array(9).fill(0))
+      };
+      
+      await set(gameRef, resetState);
+      console.log('Game reset in database');
+      
+      // Reset local state
+      setGameState(Array(9).fill(Array(9).fill(null)));
+      setMiniWinners(Array(9).fill(null));
+      setActiveBoard(null);
+      setCurrentPlayer('X');
+      setWinner(null);
+      setMoveHistory([]);
+      setLastMove(null);
+      setGameStatus('waiting');
+      
+    } catch (error) {
+      console.error('Error resetting game:', error);
+      alert('Failed to reset game. Please try again.');
+    }
   };
 
   if (mode === 'online' && !gameId) {
@@ -725,10 +807,10 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 {isPlayerX ? 'X' : 'O'}
               </p>
             </div>
-            <div className="px-6 py-3 rounded-lg bg-gray-800">
+            <div className={`px-6 py-3 rounded-lg ${!isPlayerX ? 'bg-blue-500/20 border-2 border-blue-500' : 'bg-gray-800'}`}>
               <p className="text-sm text-gray-400">Opponent is</p>
-              <p className={`text-2xl font-bold ${isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>
-                {isPlayerX ? 'O' : 'X'}
+              <p className={`text-2xl font-bold ${!isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>
+                {!isPlayerX ? 'X' : 'O'}
               </p>
             </div>
           </div>
@@ -742,12 +824,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
                   {isPlayerX && moveHistory.length === 0 
-                    ? "It&apos;s your turn! Make your first move anywhere on the board."
-                    : "It&apos;s your turn! Make your move."}
+                    ? "It's your turn! Make your first move anywhere on the board."
+                    : "It's your turn! Make your move."}
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
-                  Waiting for opponent&apos;s move...
+                  Waiting for opponent's move...
                 </p>
               )}
             </div>
@@ -811,6 +893,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               {mini.map((cell, cellIndex) => {
                 const isWinLine = winLine.includes(cellIndex);
                 const canPlay = isFirstMove || (isActive && !miniWinners[miniIndex] && !winner);
+                const wasLastMove = isLastMove(miniIndex, cellIndex);
                 
                 return (
                   <motion.button
@@ -821,14 +904,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                     } ${!canPlay || !isBoardReady ? 'pointer-events-none opacity-60' : ''}`}
                     style={{
                       color: getCellColor(cell),
-                      backgroundColor:
-                        isWinLine && boardWinner === 'X'
-                          ? '#f87171'
-                          : isWinLine && boardWinner === 'O'
-                          ? '#60a5fa'
-                          : isWinLine && boardWinner
-                          ? '#e5e7eb'
-                          : 'transparent',
+                      backgroundColor: wasLastMove
+                        ? 'rgba(255, 255, 0, 0.3)' // Yellow highlight for last move
+                        : isWinLine && boardWinner === 'X'
+                        ? '#f87171'
+                        : isWinLine && boardWinner === 'O'
+                        ? '#60a5fa'
+                        : isWinLine && boardWinner
+                        ? '#e5e7eb'
+                        : 'transparent',
                     }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -870,20 +954,37 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
       {/* Game Controls */}
       <div className="flex gap-2 flex-wrap justify-center mt-4">
-        <button
-          onClick={resetGame}
-          className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
-        >
-          Reset Game
-        </button>
-        {mode !== 'online' && (
-          <button
-            onClick={undoMove}
-            disabled={moveHistory.length === 0}
-            className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 disabled:opacity-50 transition"
-          >
-            Undo
-          </button>
+        {mode === 'online' ? (
+          <>
+            <button
+              onClick={resetOnlineGame}
+              className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
+            >
+              Reset Game
+            </button>
+            <button
+              onClick={copyGameId}
+              className="px-5 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition"
+            >
+              Copy Game ID
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={resetGame}
+              className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 transition"
+            >
+              Reset Game
+            </button>
+            <button
+              onClick={undoMove}
+              disabled={moveHistory.length === 0}
+              className="px-5 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-300 disabled:opacity-50 transition"
+            >
+              Undo
+            </button>
+          </>
         )}
         {onBack && (
           <button
