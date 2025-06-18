@@ -824,8 +824,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
                   {isPlayerX && moveHistory.length === 0 
-                    ? "It's your turn! Make your first move anywhere on the board."
-                    : "It's your turn! Make your move."}
+                    ? "It is your turn! Make your first move anywhere on the board."
+                    : "It is your turn! Make your move."}
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
