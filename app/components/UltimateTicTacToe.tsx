@@ -829,7 +829,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
-                  Waiting for opponent's move...
+                  Waiting for opponent move...
                 </p>
               )}
             </div>
