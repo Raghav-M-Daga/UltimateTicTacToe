@@ -128,41 +128,6 @@ const getStrongMove = (
 // Helper to check if a mini-board is full
 const isMiniBoardFull = (mini: MiniBoardState) => mini.every(cell => cell !== null);
 
-// Helper to convert board object to array for rendering
-function boardObjToArr(boardObj: Record<string, Record<string, Player>>): Player[][] {
-  return Object.keys(boardObj)
-    .sort((a, b) => Number(a) - Number(b))
-    .map(i => {
-      const mini = boardObj[i];
-      return Object.keys(mini)
-        .sort((a, b) => Number(a) - Number(b))
-        .map(j => mini[j]);
-    });
-}
-
-// Helper to convert miniWinners object to array
-function miniWinnersObjToArr(miniObj: Record<string, Player | null>): (Player | null)[] {
-  return Object.keys(miniObj)
-    .sort((a, b) => Number(a) - Number(b))
-    .map(i => miniObj[i]);
-}
-
-// Hardcoded initial board and miniWinners objects
-const initialBoard = {
-  "0": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "1": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "2": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "3": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "4": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "5": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "6": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "7": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null },
-  "8": { "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null }
-};
-const initialMiniWinners = {
-  "0": null, "1": null, "2": null, "3": null, "4": null, "5": null, "6": null, "7": null, "8": null
-};
-
 interface UltimateTicTacToeProps {
   mode: GameMode;
   onBack?: () => void;
@@ -303,13 +268,13 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           setGameStatus(status);
           gameStatusRef.current = status;
 
-          // Convert boardArray to gameState format
+          // Convert boardArray to gameState format for display
           const safeBoard = data.boardArray.map((row: number[]) => 
             row.map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null)
           );
           setGameState(safeBoard);
           
-          // Convert miniWinnersArray to miniWinners format
+          // Convert miniWinnersArray to miniWinners format for display
           const safeMiniWinners = data.miniWinnersArray.map((cell: number) => 
             cell === 1 ? 'X' : cell === 2 ? 'O' : null
           );
@@ -350,9 +315,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
-      // Use hardcoded initialBoard and initialMiniWinners
+      // Create initial game state with only array formats
       const initialGameState = {
-        board: initialBoard,
         currentPlayer: 'X',
         activeBoard: null,
         winner: null,
@@ -361,7 +325,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           O: null
         },
         status: 'waiting',
-        miniWinners: initialMiniWinners,
         lastMove: null,
         createdAt: Date.now(),
         test: [0, 0, 0, 0, 0],
@@ -381,8 +344,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setGameId(newGameId);
       setIsPlayerX(true);
       setGameStatus('waiting');
-      setGameState(boardObjToArr(initialBoard));
-      setMiniWinners(miniWinnersObjToArr(initialMiniWinners));
+      setGameState(Array(9).fill(Array(9).fill(null)));
+      setMiniWinners(Array(9).fill(null));
       setCurrentPlayer('X');
       setActiveBoard(null);
       setWinner(null);
@@ -425,23 +388,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         throw new Error('Game is full');
       }
 
-      // Initialize board if it doesn't exist
-      if (!gameData.board) {
-        gameData.board = initialBoard;
-        await set(gameRef, JSON.parse(JSON.stringify({
-          ...gameData,
-          board: gameData.board,
-          miniWinners: initialMiniWinners,
-        }))); // Wait for the board to exist
+      // Initialize boardArray if it doesn't exist
+      if (!gameData.boardArray) {
+        gameData.boardArray = Array(9).fill(Array(9).fill(0));
+        gameData.miniWinnersArray = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        await set(gameRef, JSON.parse(JSON.stringify(gameData)));
+        
         // Wait for the board to exist
         let tries = 0;
-        while ((!gameData || !gameData.board) && tries < 5) {
+        while ((!gameData || !gameData.boardArray) && tries < 5) {
           await new Promise(res => setTimeout(res, 200));
           snapshot = await get(gameRef);
           gameData = snapshot.val();
           tries++;
         }
-        if (!gameData || !gameData.board) {
+        if (!gameData || !gameData.boardArray) {
           throw new Error('Failed to join game - board not initialized');
         }
       }
@@ -449,13 +410,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       // Join as player O
       const updatedGameData = {
         ...gameData,
-        board: gameData.board,
         players: {
           ...gameData.players,
           O: myUid
         },
         status: 'playing',
-        miniWinners: gameData.miniWinners || initialMiniWinners,
         lastMove: gameData.lastMove || null,
         currentPlayer: 'X' // Ensure X starts
       };
@@ -467,8 +426,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setGameId(id);
       setIsPlayerX(false);
       setGameStatus('playing');
-      setGameState(boardObjToArr(updatedGameData.board));
-      setMiniWinners(miniWinnersObjToArr(updatedGameData.miniWinners));
+      setGameState(gameData.boardArray.map((row: number[]) => 
+        row.map((cell: number) => cell === 1 ? 'X' : cell === 2 ? 'O' : null)
+      ));
+      setMiniWinners(gameData.miniWinnersArray.map((cell: number) => 
+        cell === 1 ? 'X' : cell === 2 ? 'O' : null
+      ));
       setCurrentPlayer('X');
       setActiveBoard(null);
       setWinner(null);
@@ -481,17 +444,34 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const handleClick = (boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
     if (winner) return;
-    // Convert miniWinners to array format for comparison
-    const miniWinnersArray = miniWinners.map(w => w === 'X' ? 1 : w === 'O' ? 2 : 0);
-    if (miniWinnersArray[boardIndex] !== 0) return; // Prevent moves in won mini-boards
+    
+    // Check if the cell is already filled
+    if (gameState[boardIndex][cellIndex] !== null) {
+      console.log('Cell already filled');
+      return;
+    }
 
-    // Enforce forced mini-board logic for local/single modes
-    if ((mode === 'single' || mode === 'multi')) {
-      if (activeBoard !== null && activeBoard !== boardIndex) {
-        // If forced board is not the one being played, check if forced board is won or full
-        if (miniWinnersArray[activeBoard] === 0 && !isMiniBoardFull(gameState[activeBoard])) {
-          return; // Not allowed to play here
-        }
+    // For online mode, check if it's the player's turn
+    if (mode === 'online') {
+      const isMyTurn = (isPlayerX && currentPlayer === 'X') || (!isPlayerX && currentPlayer === 'O');
+      if (!isMyTurn) {
+        console.log('Not your turn');
+        return;
+      }
+    }
+
+    // Check if the board is already won
+    if (miniWinners[boardIndex] !== null) {
+      console.log('Board already won');
+      return;
+    }
+
+    // Enforce forced mini-board logic
+    if (activeBoard !== null && activeBoard !== boardIndex) {
+      // If forced board is not the one being played, check if forced board is won or full
+      if (miniWinners[activeBoard] === null && !isMiniBoardFull(gameState[activeBoard])) {
+        console.log('Must play in board', activeBoard);
+        return; // Not allowed to play here
       }
     }
 
@@ -629,11 +609,18 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   // Helper function to check if a board is playable
   const isBoardPlayable = (boardIndex: number): boolean => {
+    // If no active board is set, all boards are playable
     if (activeBoard === null) return true;
+    
+    // If this is the active board, it's playable
     if (activeBoard === boardIndex) return true;
-    const miniWinnersArray = miniWinners.map(w => w === 'X' ? 1 : w === 'O' ? 2 : 0);
-    if (miniWinnersArray[activeBoard] !== 0) return true;
-    if (isMiniBoardFull(gameState[activeBoard])) return true;
+    
+    // If the active board is won or full, all boards become playable
+    if (miniWinners[activeBoard] !== null || isMiniBoardFull(gameState[activeBoard])) {
+      return true;
+    }
+    
+    // Otherwise, only the active board is playable
     return false;
   };
 
