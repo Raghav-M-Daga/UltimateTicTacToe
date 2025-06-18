@@ -151,6 +151,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing'>('waiting');
   const [showStartAlert, setShowStartAlert] = useState(false);
   const [lastMove, setLastMove] = useState<{board: number, cell: number} | null>(null);
+  const [resetRequest, setResetRequest] = useState<boolean>(false);
+  const [showResetDialog, setShowResetDialog] = useState<boolean>(false);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
@@ -292,6 +294,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             });
           } else {
             setLastMove(null);
+          }
+          
+          // Handle reset requests
+          if (data.resetRequested && data.resetRequestedBy !== auth.currentUser?.uid) {
+            setResetRequest(true);
+            setShowResetDialog(true);
+          } else if (!data.resetRequested) {
+            setResetRequest(false);
+            setShowResetDialog(false);
           }
           
           console.log('Local state updated from real-time update. Current board:', safeBoard);
@@ -668,6 +679,31 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
+      // Request reset from the other player
+      const currentData = (await get(gameRef)).val();
+      const updatedData = {
+        ...currentData,
+        resetRequested: true,
+        resetRequestedBy: auth.currentUser?.uid
+      };
+      
+      await set(gameRef, updatedData);
+      console.log('Reset requested');
+      
+    } catch (error) {
+      console.error('Error requesting reset:', error);
+      alert('Failed to request reset. Please try again.');
+    }
+  };
+
+  // Function to accept reset
+  const acceptReset = async () => {
+    if (!gameId) return;
+    
+    try {
+      const db = getDatabase();
+      const gameRef = ref(db, `games/${gameId}`);
+      
       // Reset the game state in database
       const resetState = {
         currentPlayer: 'X',
@@ -679,6 +715,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         },
         status: 'waiting',
         lastMove: null,
+        resetRequested: false,
+        resetRequestedBy: null,
         createdAt: Date.now(),
         test: [0, 0, 0, 0, 0],
         miniWinnersArray: [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -697,10 +735,36 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setMoveHistory([]);
       setLastMove(null);
       setGameStatus('waiting');
+      setResetRequest(false);
+      setShowResetDialog(false);
       
     } catch (error) {
       console.error('Error resetting game:', error);
       alert('Failed to reset game. Please try again.');
+    }
+  };
+
+  // Function to decline reset
+  const declineReset = async () => {
+    if (!gameId) return;
+    
+    try {
+      const db = getDatabase();
+      const gameRef = ref(db, `games/${gameId}`);
+      
+      const currentData = (await get(gameRef)).val();
+      const updatedData = {
+        ...currentData,
+        resetRequested: false,
+        resetRequestedBy: null
+      };
+      
+      await set(gameRef, updatedData);
+      setResetRequest(false);
+      setShowResetDialog(false);
+      
+    } catch (error) {
+      console.error('Error declining reset:', error);
     }
   };
 
@@ -913,6 +977,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                         : isWinLine && boardWinner
                         ? '#e5e7eb'
                         : 'transparent',
+                      border: wasLastMove ? '2px solid white' : '1px solid #6b7280', // White outline for last move
                     }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -1000,6 +1065,30 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         <div className="fixed top-0 left-0 w-full flex justify-center z-50">
           <div className="bg-blue-600 text-white px-6 py-3 rounded-b-lg shadow-lg text-xl font-bold mt-2 animate-bounce">
             Game is starting!
+          </div>
+        </div>
+      )}
+
+      {/* Reset Request Dialog */}
+      {showResetDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-white mb-4">Reset Request</h3>
+            <p className="text-gray-300 mb-6">Your opponent wishes to restart the game. Do you want to accept?</p>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={declineReset}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+              >
+                No
+              </button>
+              <button
+                onClick={acceptReset}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+              >
+                Yes
+              </button>
+            </div>
           </div>
         </div>
       )}
