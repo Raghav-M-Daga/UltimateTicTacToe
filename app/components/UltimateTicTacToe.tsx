@@ -253,10 +253,9 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               test: [0, 0, 0, 0, 0],
               status: data.players && data.players.O ? 'playing' : 'waiting'
             };
-            set(gameRef, JSON.parse(JSON.stringify(updatedData)))
+            set(gameRef, updatedData)
               .then(() => console.log('Board initialized in database'))
               .catch((err) => console.error('Failed to initialize board in database', err));
-            // Do NOT update local state here. Wait for the next real-time update.
             return;
           }
 
@@ -307,7 +306,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         unsubscribe();
       };
     }
-  }, [mode, gameId, gameStatus]);
+  }, [mode, gameId]);
 
   const createGame = async (): Promise<void> => {
     try {
@@ -336,9 +335,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       
       // Create the game in Firebase
       const gameRef = ref(db, `games/${newGameId}`);
-      await set(gameRef, JSON.parse(JSON.stringify(initialGameState)))
-        .then(() => console.log('Game created in DB:', initialGameState))
-        .catch((err) => console.error('Failed to create game in DB', err));
+      await set(gameRef, initialGameState);
+      console.log('Game created in DB:', initialGameState);
       
       // Set local state and route. Real-time listener will update UI when board is available.
       setGameId(newGameId);
@@ -392,7 +390,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       if (!gameData.boardArray) {
         gameData.boardArray = Array(9).fill(Array(9).fill(0));
         gameData.miniWinnersArray = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        await set(gameRef, JSON.parse(JSON.stringify(gameData)));
+        await set(gameRef, gameData);
         
         // Wait for the board to exist
         let tries = 0;
@@ -420,7 +418,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       };
 
       console.log('Joining game with data:', JSON.stringify(updatedGameData, null, 2));
-      await set(gameRef, JSON.parse(JSON.stringify(updatedGameData)));
+      await set(gameRef, updatedGameData);
 
       // Update local state
       setGameId(id);
