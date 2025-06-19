@@ -48,6 +48,9 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err) {
