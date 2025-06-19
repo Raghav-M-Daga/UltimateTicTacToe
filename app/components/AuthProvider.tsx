@@ -21,6 +21,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+      
       const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
         setUser(user);
         setLoading(false);
