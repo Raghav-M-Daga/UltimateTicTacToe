@@ -17,6 +17,9 @@ export default function SignInPage() {
 
   useEffect(() => {
     try {
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           router.push('/games');
