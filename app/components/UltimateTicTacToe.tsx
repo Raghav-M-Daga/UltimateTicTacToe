@@ -860,20 +860,21 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       {mode === 'online' && (
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <div className={`px-6 py-3 rounded-lg ${isPlayerX ? 'bg-red-500/20 border-2 border-red-500' : 'bg-gray-800'}`}>
+            {/* You are box: outlined and colored for your symbol */}
+            <div className={`px-6 py-3 rounded-lg border-2 font-bold flex flex-col items-center justify-center ${
+              isPlayerX ? 'border-red-500 bg-red-500/20' : 'border-blue-500 bg-blue-500/20'
+            }`}>
               <p className="text-sm text-gray-400">You are</p>
-              <p className={`text-2xl font-bold ${isPlayerX ? 'text-red-500' : 'text-blue-500'}`}>
-                {isPlayerX ? 'X' : 'O'}
-              </p>
+              <p className={`text-2xl font-bold ${isPlayerX ? 'text-red-500' : 'text-blue-500'}`}>{isPlayerX ? 'X' : 'O'}</p>
             </div>
-            <div className={`px-6 py-3 rounded-lg ${!isPlayerX ? 'bg-blue-500/20 border-2 border-blue-500' : 'bg-gray-800'}`}>
+            {/* Opponent is box: filled with correct color, no outline */}
+            <div className={`px-6 py-3 rounded-lg font-bold flex flex-col items-center justify-center ${
+              isPlayerX ? 'bg-blue-500/20' : 'bg-red-500/20'
+            }`}>
               <p className="text-sm text-gray-400">Opponent is</p>
-              <p className={`text-2xl font-bold ${!isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>
-                {!isPlayerX ? 'X' : 'O'}
-              </p>
+              <p className={`text-2xl font-bold ${isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>{isPlayerX ? 'O' : 'X'}</p>
             </div>
           </div>
-
           {gameStatus === 'playing' && (
             <div className={`px-6 py-3 rounded-lg ${
               currentPlayer === (isPlayerX ? 'X' : 'O')
@@ -882,9 +883,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             }`}>
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
-                  {isPlayerX && moveHistory.length === 0 
-                    ? "It is your turn! Make your first move anywhere on the board."
-                    : "It is your turn! Make your move."}
+                  It is your turn! Make a move.
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
