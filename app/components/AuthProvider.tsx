@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
+import { User, AuthError } from 'firebase/auth';
 import { getFirebaseAuth } from '../../firebaseConfig';
 
 interface AuthContextType {
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
         setUser(user);
         setLoading(false);
-      }, (error: any) => {
+      }, (error: AuthError) => {
         console.error('Auth state change error:', error);
         setError('Authentication error occurred');
         setLoading(false);
