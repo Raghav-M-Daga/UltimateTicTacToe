@@ -152,7 +152,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const [showStartAlert, setShowStartAlert] = useState(false);
   const [lastMove, setLastMove] = useState<{board: number, cell: number} | null>(null);
   const [showResetDialog, setShowResetDialog] = useState<boolean>(false);
-  const [showCopyFeedback, setShowCopyFeedback] = useState(false);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
     console.log(`Cell clicked: miniBoard ${boardIndex}, cell ${cellIndex}`);
@@ -657,8 +656,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (gameId) {
       try {
         await navigator.clipboard.writeText(gameId);
-        setShowCopyFeedback(true);
-        setTimeout(() => setShowCopyFeedback(false), 2000);
+        alert('Game ID copied to clipboard!');
       } catch (err) {
         console.error('Failed to copy game ID:', err);
         // Fallback for older browsers
@@ -668,8 +666,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        setShowCopyFeedback(true);
-        setTimeout(() => setShowCopyFeedback(false), 2000);
+        alert('Game ID copied to clipboard!');
       }
     }
   };
@@ -867,15 +864,15 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       {mode === 'online' && (
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <div className={`px-6 py-3 rounded-lg ${isPlayerX ? 'bg-red-500/20 border-2 border-red-500' : 'bg-blue-500/20 border-2 border-blue-500'}`}>
+            <div className={`px-6 py-3 rounded-lg ${isPlayerX ? 'bg-red-500/20 border-2 border-red-500' : 'bg-gray-800'}`}>
               <p className="text-sm text-gray-400">You are</p>
               <p className={`text-2xl font-bold ${isPlayerX ? 'text-red-500' : 'text-blue-500'}`}>
                 {isPlayerX ? 'X' : 'O'}
               </p>
             </div>
-            <div className="px-6 py-3 rounded-lg bg-gray-800">
+            <div className={`px-6 py-3 rounded-lg ${!isPlayerX ? 'bg-blue-500/20 border-2 border-blue-500' : 'bg-gray-800'}`}>
               <p className="text-sm text-gray-400">Opponent is</p>
-              <p className={`text-2xl font-bold ${!isPlayerX ? 'text-red-500' : 'text-blue-500'}`}>
+              <p className={`text-2xl font-bold ${!isPlayerX ? 'text-blue-500' : 'text-red-500'}`}>
                 {!isPlayerX ? 'X' : 'O'}
               </p>
             </div>
@@ -891,9 +888,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
                 <p className="text-xl font-bold text-green-400">
                   {moveHistory.length === 0 
                     ? "It is your turn! Make your first move anywhere on the board."
-                    : activeBoard !== null 
-                      ? `It is your turn! Play in board ${activeBoard + 1}.`
-                      : "It is your turn! Choose any available board to play in."}
+                    : "It is your turn! Make your move."}
                 </p>
               ) : (
                 <p className="text-xl font-bold text-yellow-400">
@@ -938,7 +933,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           const miniWin = boardWinner && checkMiniWinner(mini);
           const winLine = miniWin ? miniWin.line : [];
           const isActive = isBoardPlayable(miniIndex);
-          const isFirstMove = moveHistory.length === 0;
+          const isFirstMove = moveHistory.length === 0 && currentPlayer === 'X';
           
           return (
             <div
@@ -1094,12 +1089,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {showCopyFeedback && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg text-lg font-bold z-50">
-          Game ID copied to clipboard!
         </div>
       )}
     </div>
