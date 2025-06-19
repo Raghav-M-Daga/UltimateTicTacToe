@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebaseConfig';
+import { getFirebaseAuth } from '../../firebaseConfig';
 import { useState } from 'react';
 
 export default function GamesPage() {
@@ -12,6 +12,7 @@ export default function GamesPage() {
 
   const handleSignOut = async () => {
     try {
+      const auth = getFirebaseAuth();
       await signOut(auth);
       router.push('/');
     } catch (error) {

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getDatabase, Database } from 'firebase/database';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
   // Replace these with your Firebase config values
@@ -24,19 +24,59 @@ const firebaseConfig = {
 //   measurementId: "G-3KBZW8XMTQ"
 // };
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 
+  'NEXT_PUBLIC_FIREBASE_DATABASE_URL',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('Missing required Firebase environment variables:', missingVars);
+  if (typeof window !== 'undefined') {
+    // Only throw in browser to prevent build failures
+    throw new Error(`Missing Firebase configuration: ${missingVars.join(', ')}`);
+  }
+}
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let database: Database | undefined;
+let auth: Auth | undefined;
+let googleProvider: GoogleAuthProvider | undefined;
 
-// Initialize Realtime Database and get a reference to the service
-export const database = getDatabase(app);
+try {
+  app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+  // Log initialization status
+  console.log('Firebase initialized successfully with config:', {
+    authDomain: firebaseConfig.authDomain,
+    databaseURL: firebaseConfig.databaseURL,
+    projectId: firebaseConfig.projectId
+  });
+} catch (error) {
+  console.error('Failed to initialize Firebase:', error);
+  if (typeof window !== 'undefined') {
+    throw error;
+  }
+}
 
-// Log initialization status
-console.log('Firebase initialized with config:', {
-  authDomain: firebaseConfig.authDomain,
-  databaseURL: firebaseConfig.databaseURL,
-  projectId: firebaseConfig.projectId
-}); 
+// Helper functions for consistent access
+export const getFirebaseAuth = (): Auth => {
+  if (!auth) throw new Error('Firebase Auth not initialized');
+  return auth;
+};
+
+export const getFirebaseDatabase = (): Database => {
+  if (!database) throw new Error('Firebase Database not initialized');
+  return database;
+};
+
+// Export initialized instances
+export { database, auth, googleProvider }; 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import { auth } from '../../firebaseConfig';
+import { getFirebaseAuth } from '../../firebaseConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -20,10 +20,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        setUser(user);
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } catch (error) {

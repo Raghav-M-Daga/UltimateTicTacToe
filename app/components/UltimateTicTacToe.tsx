@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { auth } from '../../firebaseConfig';
-import { getDatabase, ref, set, get, remove, onValue } from 'firebase/database';
+import { getFirebaseAuth, getFirebaseDatabase } from '../../firebaseConfig';
+import { ref, set, get, remove, onValue } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 
 // Types
@@ -231,7 +231,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   // Real-time sync for online games
   useEffect(() => {
     if (mode === 'online' && gameId) {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       console.log('Setting up real-time listener for game:', gameId);
@@ -297,6 +297,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           }
           
           // Handle reset requests
+          const auth = getFirebaseAuth();
           if (data.resetRequested && data.resetRequestedBy !== auth.currentUser?.uid) {
             setShowResetDialog(true);
           } else if (!data.resetRequested) {
@@ -331,11 +332,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   const createGame = async (): Promise<void> => {
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
       // Create initial game state with only array formats
+      const auth = getFirebaseAuth();
       const initialGameState = {
         currentPlayer: 'X',
         activeBoard: null,
@@ -384,13 +386,14 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   const joinGame = async (id: string): Promise<void> => {
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${id}`);
       let snapshot = await get(gameRef);
       if (!snapshot.exists()) {
         throw new Error('Game not found');
       }
       let gameData = snapshot.val();
+      const auth = getFirebaseAuth();
       const myUid = auth.currentUser?.uid;
       if (!myUid) throw new Error('Not authenticated');
 
@@ -507,7 +510,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       return;
     }
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
       if (!snapshot.exists()) {
@@ -676,11 +679,12 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       // Request reset from the other player
       const currentData = (await get(gameRef)).val();
+      const auth = getFirebaseAuth();
       const updatedData = {
         ...currentData,
         resetRequested: true,
@@ -701,7 +705,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       // Get current player assignments to preserve them
@@ -748,7 +752,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getDatabase();
+      const db = getFirebaseDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       const currentData = (await get(gameRef)).val();
@@ -821,7 +825,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         <button
           onClick={() => {
             if (gameId) {
-              const db = getDatabase();
+              const db = getFirebaseDatabase();
               remove(ref(db, `games/${gameId}`));
             }
             setGameId('');
