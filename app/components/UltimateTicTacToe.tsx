@@ -927,7 +927,11 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           const boardWinner = miniWinners[miniIndex];
           const miniWin = boardWinner && checkMiniWinner(mini);
           const winLine = miniWin ? miniWin.line : [];
-          const isActive = isBoardPlayable(miniIndex);
+          // Only highlight the active board if forced, otherwise highlight all
+          const isActive =
+            activeBoard === null
+              ? true
+              : activeBoard === miniIndex;
           const isFirstMove = moveHistory.length === 0 && isPlayerX && currentPlayer === 'X';
           
           return (
