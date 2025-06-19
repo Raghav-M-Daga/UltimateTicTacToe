@@ -12,6 +12,9 @@ export default function GamesPage() {
 
   const handleSignOut = async () => {
     try {
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
       await signOut(auth);
       router.push('/');
     } catch (error) {
