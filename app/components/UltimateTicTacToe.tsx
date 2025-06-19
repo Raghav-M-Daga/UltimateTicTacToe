@@ -151,7 +151,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing'>('waiting');
   const [showStartAlert, setShowStartAlert] = useState(false);
   const [lastMove, setLastMove] = useState<{board: number, cell: number} | null>(null);
-  const [resetRequest, setResetRequest] = useState<boolean>(false);
   const [showResetDialog, setShowResetDialog] = useState<boolean>(false);
 
   const handleLocalMove = useCallback((boardIndex: number, cellIndex: number): void => {
@@ -298,10 +297,8 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           
           // Handle reset requests
           if (data.resetRequested && data.resetRequestedBy !== auth.currentUser?.uid) {
-            setResetRequest(true);
             setShowResetDialog(true);
           } else if (!data.resetRequested) {
-            setResetRequest(false);
             setShowResetDialog(false);
           }
           
@@ -735,7 +732,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setMoveHistory([]);
       setLastMove(null);
       setGameStatus('waiting');
-      setResetRequest(false);
       setShowResetDialog(false);
       
     } catch (error) {
@@ -760,7 +756,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       };
       
       await set(gameRef, updatedData);
-      setResetRequest(false);
       setShowResetDialog(false);
       
     } catch (error) {

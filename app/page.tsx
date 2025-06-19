@@ -182,7 +182,7 @@ export default function SignInPage() {
           </button>
 
           <p className="mt-6 text-center text-sm text-gray-400">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isSignUp ? 'Already have an account?' : "Do not have an account?"}{' '}
             <button
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-white hover:underline"
