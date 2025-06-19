@@ -2,13 +2,6 @@
 
 A modern, full-featured implementation of Ultimate Tic Tac Toe built with Next.js, React, TypeScript, and Firebase. Play against AI, friends locally, or compete online in real-time multiplayer matches.
 
-![Ultimate Tic Tac Toe](https://img.shields.io/badge/Game-Ultimate%20Tic%20Tac%20Toe-blue)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![React](https://img.shields.io/badge/React-18-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Firebase](https://img.shields.io/badge/Firebase-10-orange)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-38B2AC)
-
 ## 🎯 Overview
 
 Ultimate Tic Tac Toe is a strategic variant of the classic game where players compete on a 3x3 grid of mini-boards. Each move determines where your opponent must play next, adding layers of strategy and forward-thinking to the traditional game.
@@ -31,7 +24,11 @@ Ultimate Tic Tac Toe is a strategic variant of the classic game where players co
 - npm or yarn
 - Firebase account
 
-### Installation
+### Usage
+
+Link to access: https://ultimate-tic-tac-toe-ivory.vercel.app/
+
+OR
 
 1. **Clone the repository**
    ```bash
@@ -156,7 +153,6 @@ ultimate-tic-tac-toe/
 - **Next.js 14**: React framework with App Router
 - **React 18**: UI library with hooks and modern features
 - **TypeScript**: Type-safe JavaScript
-- **Tailwind CSS**: Utility-first CSS framework
 - **Framer Motion**: Animation library for smooth transitions
 
 ### Backend & Services
@@ -190,85 +186,9 @@ ultimate-tic-tac-toe/
 - **Reset Functionality**: Collaborative game reset with confirmation
 - **Move Validation**: Prevents illegal moves and ensures fair play
 
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy automatically on every push
-
-### Firebase Hosting
-```bash
-npm run build
-firebase deploy
-```
-
-### Other Platforms
-The app can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- DigitalOcean App Platform
-- AWS Amplify
-
-## 🤝 Contributing
-
-We welcome contributions! Please feel free to submit a Pull Request.
-
-### Development Guidelines
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-- Use TypeScript for all new code
-- Follow ESLint configuration
-- Write meaningful commit messages
-- Add comments for complex logic
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Game Concept**: Ultimate Tic Tac Toe is a well-known strategic variant
 - **Firebase**: For providing excellent real-time database and authentication services
 - **Next.js Team**: For the amazing React framework
-- **Tailwind CSS**: For the utility-first CSS framework
 - **Framer Motion**: For smooth animations
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/yourusername/ultimate-tic-tac-toe/issues) page
-2. Create a new issue with detailed information
-3. Include steps to reproduce the problem
-4. Provide your browser and device information
-
-## 🎯 Roadmap
-
-### Planned Features
-- [ ] Game history and statistics
-- [ ] Tournament mode
-- [ ] Custom themes and colors
-- [ ] Sound effects and music
-- [ ] Mobile app (React Native)
-- [ ] AI difficulty levels
-- [ ] Spectator mode for online games
-- [ ] Chat functionality for online games
-
-### Performance Improvements
-- [ ] Optimize bundle size
-- [ ] Implement service workers for offline play
-- [ ] Add progressive web app features
-- [ ] Improve AI algorithm efficiency
-
----
-
-**Enjoy playing Ultimate Tic Tac Toe! 🎮✨**
-
-*Built with ❤️ using Next.js, React, TypeScript, and Firebase*
