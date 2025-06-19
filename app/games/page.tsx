@@ -136,7 +136,7 @@ export default function GamesPage() {
                 <h3 className="text-xl font-semibold mb-2 text-red-400">🎯 Strategy Tips</h3>
                 <ul className="text-gray-300 space-y-2 ml-4">
                   <li>• Think ahead: your move affects where your opponent plays next</li>
-                  <li>• Try to send your opponent to boards you've already won</li>
+                  <li>• Try to send your opponent to boards you have already won</li>
                   <li>• Block your opponent from winning mini-boards</li>
                   <li>• Control the center mini-board for better strategic positioning</li>
                 </ul>
