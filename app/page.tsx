@@ -66,6 +66,9 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
