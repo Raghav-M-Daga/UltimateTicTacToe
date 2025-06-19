@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const auth = getFirebaseAuth();
-      const unsubscribe = auth.onAuthStateChanged((user) => {
+      const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
         setUser(user);
         setLoading(false);
       });

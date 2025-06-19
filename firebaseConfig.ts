@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getDatabase, Database } from 'firebase/database';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 
 // const firebaseConfig = {
 //   // Replace these with your Firebase config values
@@ -23,6 +23,24 @@ const firebaseConfig = {
   appId: "1:147072612784:web:b6636431d65c2219767e75",
   measurementId: "G-3KBZW8XMTQ"
 };
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 
+  'NEXT_PUBLIC_FIREBASE_DATABASE_URL',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('Missing required Firebase environment variables:', missingVars);
+  if (typeof window !== 'undefined') {
+    // Only throw in browser to prevent build failures
+    throw new Error(`Missing Firebase configuration: ${missingVars.join(', ')}`);
+  }
+}
 
 // Initialize Firebase
 let app;
