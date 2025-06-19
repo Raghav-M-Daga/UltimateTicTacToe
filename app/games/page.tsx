@@ -147,7 +147,7 @@ export default function GamesPage() {
                 <ul className="text-gray-300 space-y-2 ml-4">
                   <li>• <span className="text-blue-400">Single Player:</span> Play against an AI opponent</li>
                   <li>• <span className="text-green-400">Local Multiplayer:</span> Play with a friend on the same device</li>
-                  <li>• <span className="text-purple-400">Online Multiplayer:</span> Play with friends online in real-time</li>
+                  <li>• <span className="text-purple-400">Online Multiplayer:</span> Play with friends online in real time</li>
                 </ul>
               </div>
             </div>
