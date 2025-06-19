@@ -2,7 +2,6 @@
 import './globals.css'
 import { Fredoka } from 'next/font/google';
 import { AuthProvider } from './components/AuthProvider';
-import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const fredoka = Fredoka({ subsets: ['latin'], weight: ['400', '700'] });
@@ -18,9 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={fredoka.className}>
         <ErrorBoundary>
           <AuthProvider>
-            <ProtectedRoute>
-              {children}
-            </ProtectedRoute>
+            {children}
           </AuthProvider>
         </ErrorBoundary>
       </body>

@@ -5,8 +5,9 @@ import { motion } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
 import { useState } from 'react';
+import ProtectedRoute from '../components/ProtectedRoute';
 
-export default function GamesPage() {
+function GamesPage() {
   const router = useRouter();
   const [showRules, setShowRules] = useState(false);
 
@@ -158,5 +159,13 @@ export default function GamesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProtectedGamesPageWrapper() {
+  return (
+    <ProtectedRoute>
+      <GamesPage />
+    </ProtectedRoute>
   );
 } 

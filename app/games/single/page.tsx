@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import UltimateTicTacToe from '../../components/UltimateTicTacToe';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
-export default function SinglePlayerGame() {
+function SinglePlayerGameContent() {
   const router = useRouter();
 
   return (
@@ -11,5 +12,13 @@ export default function SinglePlayerGame() {
       mode="single" 
       onBack={() => router.push('/games')} 
     />
+  );
+}
+
+export default function SinglePlayerGame() {
+  return (
+    <ProtectedRoute>
+      <SinglePlayerGameContent />
+    </ProtectedRoute>
   );
 } 

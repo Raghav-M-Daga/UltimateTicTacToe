@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import UltimateTicTacToe from '../../components/UltimateTicTacToe';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
-export default function LocalMultiplayerGame() {
+function LocalMultiplayerGameContent() {
   const router = useRouter();
 
   return (
@@ -11,5 +12,13 @@ export default function LocalMultiplayerGame() {
       mode="multi" 
       onBack={() => router.push('/games')} 
     />
+  );
+}
+
+export default function LocalMultiplayerGame() {
+  return (
+    <ProtectedRoute>
+      <LocalMultiplayerGameContent />
+    </ProtectedRoute>
   );
 }

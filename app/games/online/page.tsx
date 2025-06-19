@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import UltimateTicTacToe from '../../components/UltimateTicTacToe';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
-export default function OnlineGamePage() {
+function OnlineGamePageContent() {
   const router = useRouter();
 
   return (
@@ -21,5 +22,13 @@ export default function OnlineGamePage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function OnlineGamePage() {
+  return (
+    <ProtectedRoute>
+      <OnlineGamePageContent />
+    </ProtectedRoute>
   );
 } 
