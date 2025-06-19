@@ -625,23 +625,6 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     gameState.length === 9 &&
     gameState.every(mini => Array.isArray(mini) && mini.length === 9);
 
-  // Helper function to check if a board is playable
-  const isBoardPlayable = (boardIndex: number): boolean => {
-    // If no active board is set, all boards are playable (first move)
-    if (activeBoard === null) return true;
-    
-    // If this is the active board, it's playable
-    if (activeBoard === boardIndex) return true;
-    
-    // If the active board is won or full, all boards become playable
-    if (miniWinners[activeBoard] !== null || isMiniBoardFull(gameState[activeBoard])) {
-      return true;
-    }
-    
-    // Otherwise, only the active board is playable
-    return false;
-  };
-
   // Helper function to check if a cell was the last move
   const isLastMove = (boardIndex: number, cellIndex: number): boolean => {
     if (!lastMove) return false;
