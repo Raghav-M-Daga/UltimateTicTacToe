@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
@@ -24,19 +24,84 @@ const firebaseConfig = {
 //   measurementId: "G-3KBZW8XMTQ"
 // };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Lazy initialization - only initialize if not already initialized and in browser
+let app: any = null;
+let database: any = null;
+let auth: any = null;
+let googleProvider: any = null;
 
-// Initialize Realtime Database and get a reference to the service
-export const database = getDatabase(app);
+// Initialize Firebase only in browser environment
+const initializeFirebase = () => {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    console.log('Firebase initialization skipped - server-side rendering');
+    return null;
+  }
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+  // Check if all required environment variables are present
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.databaseURL) {
+    console.error('Firebase configuration is incomplete. Please check your environment variables.');
+    return null;
+  }
 
-// Log initialization status
-console.log('Firebase initialized with config:', {
-  authDomain: firebaseConfig.authDomain,
-  databaseURL: firebaseConfig.databaseURL,
-  projectId: firebaseConfig.projectId
-}); 
+  if (!app) {
+    try {
+      // Check if Firebase is already initialized
+      const apps = getApps();
+      if (apps.length === 0) {
+        app = initializeApp(firebaseConfig);
+      } else {
+        app = apps[0];
+      }
+      
+      // Initialize services
+      database = getDatabase(app);
+      auth = getAuth(app);
+      googleProvider = new GoogleAuthProvider();
+      
+      console.log('Firebase initialized successfully with config:', {
+        authDomain: firebaseConfig.authDomain,
+        databaseURL: firebaseConfig.databaseURL,
+        projectId: firebaseConfig.projectId
+      });
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      return null;
+    }
+  }
+  
+  return app;
+};
+
+// Export functions that initialize Firebase when called
+export const getFirebaseApp = () => {
+  if (!app) {
+    initializeFirebase();
+  }
+  return app;
+};
+
+export const getFirebaseDatabase = () => {
+  if (!database) {
+    initializeFirebase();
+  }
+  return database;
+};
+
+export const getFirebaseAuth = () => {
+  if (!auth) {
+    initializeFirebase();
+  }
+  return auth;
+};
+
+export const getGoogleProvider = () => {
+  if (!googleProvider) {
+    initializeFirebase();
+  }
+  return googleProvider;
+};
+
+// For backward compatibility, export the initialized instances
+// These will be null during SSR but will be initialized when accessed in browser
+export { database, auth, googleProvider }; 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { getFirebaseAuth, getGoogleProvider } from '../firebaseConfig';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function SignInPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (user) {
         router.push('/games');
       }
@@ -28,8 +28,8 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const provider = getGoogleProvider();
+      await signInWithPopup(getFirebaseAuth(), provider);
     } catch (err) {
       console.error('Sign in error:', err);
       setError('Failed to sign in with Google. Please try again.');
@@ -44,9 +44,9 @@ export default function SignInPage() {
       setLoading(true);
       setError(null);
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
       }
     } catch (err: unknown) {
       console.error('Auth error:', err);
