@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirebaseAuth } from '../firebaseConfig';
+import { auth } from '../firebaseConfig';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,6 @@ export default function SignInPage() {
 
   useEffect(() => {
     try {
-      const auth = getFirebaseAuth();
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           router.push('/games');
@@ -46,7 +45,6 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
-      const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err) {
@@ -62,7 +60,6 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
-      const auth = getFirebaseAuth();
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
