@@ -12,24 +12,46 @@ export default function SignInPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      if (user) {
-        router.push('/games');
-      }
-    });
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          router.push('/games');
+        }
+      }, (error) => {
+        console.error('Auth state change error:', error);
+        setFirebaseError('Authentication service error');
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+      setFirebaseError('Failed to initialize authentication');
+    }
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('Environment check:', {
+        NODE_ENV: process.env.NODE_ENV,
+        hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        hasDatabaseURL: !!process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+      });
+    }
+  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError(null);
+      const auth = getFirebaseAuth();
       const provider = getGoogleProvider();
-      await signInWithPopup(getFirebaseAuth(), provider);
+      await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Sign in error:', err);
       setError('Failed to sign in with Google. Please try again.');
@@ -43,10 +65,11 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
+      const auth = getFirebaseAuth();
       if (isSignUp) {
-        await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+        await createUserWithEmailAndPassword(auth, email, password);
       } else {
-        await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+        await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: unknown) {
       console.error('Auth error:', err);
@@ -59,6 +82,24 @@ export default function SignInPage() {
       setLoading(false);
     }
   };
+
+  // Show error screen if Firebase fails to initialize
+  if (firebaseError) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Service Error</h1>
+          <p className="text-gray-400 mb-4">{firebaseError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">

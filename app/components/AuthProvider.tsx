@@ -17,15 +17,44 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = getFirebaseAuth().onAuthStateChanged((user: User | null) => {
-      setUser(user);
-      setLoading(false);
-    });
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
+        setUser(user);
+        setLoading(false);
+      }, (error: any) => {
+        console.error('Auth state change error:', error);
+        setError('Authentication error occurred');
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+      setError('Failed to initialize authentication');
+      setLoading(false);
+    }
   }, []);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Authentication Error</h1>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

@@ -24,6 +24,19 @@ const firebaseConfig = {
 //   measurementId: "G-3KBZW8XMTQ"
 // };
 
+// Debug: Log environment variables (only in development)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('Firebase config environment variables:', {
+    apiKey: firebaseConfig.apiKey ? 'SET' : 'MISSING',
+    authDomain: firebaseConfig.authDomain ? 'SET' : 'MISSING',
+    databaseURL: firebaseConfig.databaseURL ? 'SET' : 'MISSING',
+    projectId: firebaseConfig.projectId ? 'SET' : 'MISSING',
+    storageBucket: firebaseConfig.storageBucket ? 'SET' : 'MISSING',
+    messagingSenderId: firebaseConfig.messagingSenderId ? 'SET' : 'MISSING',
+    appId: firebaseConfig.appId ? 'SET' : 'MISSING',
+  });
+}
+
 // Lazy initialization - only initialize if not already initialized and in browser
 let app: any = null;
 let database: any = null;
@@ -40,8 +53,12 @@ const initializeFirebase = () => {
 
   // Check if all required environment variables are present
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.databaseURL) {
-    console.error('Firebase configuration is incomplete. Please check your environment variables.');
-    return null;
+    console.error('Firebase configuration is incomplete. Missing required environment variables:', {
+      apiKey: !!firebaseConfig.apiKey,
+      projectId: !!firebaseConfig.projectId,
+      databaseURL: !!firebaseConfig.databaseURL
+    });
+    throw new Error('Firebase configuration is incomplete. Please check your environment variables.');
   }
 
   if (!app) {
@@ -66,7 +83,7 @@ const initializeFirebase = () => {
       });
     } catch (error) {
       console.error('Error initializing Firebase:', error);
-      return null;
+      throw error;
     }
   }
   
@@ -75,31 +92,51 @@ const initializeFirebase = () => {
 
 // Export functions that initialize Firebase when called
 export const getFirebaseApp = () => {
-  if (!app) {
-    initializeFirebase();
+  try {
+    if (!app) {
+      initializeFirebase();
+    }
+    return app;
+  } catch (error) {
+    console.error('Error getting Firebase app:', error);
+    throw error;
   }
-  return app;
 };
 
 export const getFirebaseDatabase = () => {
-  if (!database) {
-    initializeFirebase();
+  try {
+    if (!database) {
+      initializeFirebase();
+    }
+    return database;
+  } catch (error) {
+    console.error('Error getting Firebase database:', error);
+    throw error;
   }
-  return database;
 };
 
 export const getFirebaseAuth = () => {
-  if (!auth) {
-    initializeFirebase();
+  try {
+    if (!auth) {
+      initializeFirebase();
+    }
+    return auth;
+  } catch (error) {
+    console.error('Error getting Firebase auth:', error);
+    throw error;
   }
-  return auth;
 };
 
 export const getGoogleProvider = () => {
-  if (!googleProvider) {
-    initializeFirebase();
+  try {
+    if (!googleProvider) {
+      initializeFirebase();
+    }
+    return googleProvider;
+  } catch (error) {
+    console.error('Error getting Google provider:', error);
+    throw error;
   }
-  return googleProvider;
 };
 
 // For backward compatibility, export the initialized instances
