@@ -1,6 +1,8 @@
-import { initializeApp } from 'firebase/app';
-import { getDatabase, Database } from 'firebase/database';
-import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
+// Import the functions you need from the SDKs you need
+import { initializeApp, getApps } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // const firebaseConfig = {
 //   // Replace these with your Firebase config values
@@ -25,58 +27,16 @@ const firebaseConfig = {
 };
 
 // Validate required environment variables
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 
-  'NEXT_PUBLIC_FIREBASE_DATABASE_URL',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
-];
-
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  console.error('Missing required Firebase environment variables:', missingVars);
-  if (typeof window !== 'undefined') {
-    // Only throw in browser to prevent build failures
-    throw new Error(`Missing Firebase configuration: ${missingVars.join(', ')}`);
-  }
-}
 
 // Initialize Firebase
-let app;
-let database: Database | undefined;
-let auth: Auth | undefined;
-let googleProvider: GoogleAuthProvider | undefined;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-try {
-  app = initializeApp(firebaseConfig);
-  database = getDatabase(app);
-  auth = getAuth(app);
-  googleProvider = new GoogleAuthProvider();
-
-  // Log initialization status
-  console.log('Firebase initialized successfully with config:', {
-    authDomain: firebaseConfig.authDomain,
-    databaseURL: firebaseConfig.databaseURL,
-    projectId: firebaseConfig.projectId
-  });
-} catch (error) {
-  console.error('Failed to initialize Firebase:', error);
-  if (typeof window !== 'undefined') {
-    throw error;
-  }
+// Only initialize analytics on client side
+let analytics = null;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
 }
 
-// Helper functions for consistent access
-export const getFirebaseAuth = (): Auth => {
-  if (!auth) throw new Error('Firebase Auth not initialized');
-  return auth;
-};
-
-export const getFirebaseDatabase = (): Database => {
-  if (!database) throw new Error('Firebase Database not initialized');
-  return database;
-};
-
-// Export initialized instances
-export { database, auth, googleProvider }; 
+export { app, auth, db, analytics };
