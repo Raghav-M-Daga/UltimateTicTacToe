@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { auth } from '../firebaseConfig';
+import { auth } from '../../firebaseConfig';
 import { getDatabase, ref, set, get, remove, onValue } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 
