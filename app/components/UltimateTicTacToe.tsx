@@ -701,16 +701,16 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
-      // Reset the game state in database
+      // Get current player assignments to preserve them
+      const currentData = (await get(gameRef)).val();
+      
+      // Reset the game state in database but preserve player assignments
       const resetState = {
         currentPlayer: 'X',
         activeBoard: null,
         winner: null,
-        players: {
-          X: auth.currentUser?.uid,
-          O: null
-        },
-        status: 'waiting',
+        players: currentData.players, // Preserve existing player assignments
+        status: 'playing', // Set to playing immediately so X can start
         lastMove: null,
         resetRequested: false,
         resetRequestedBy: null,
@@ -731,7 +731,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       setWinner(null);
       setMoveHistory([]);
       setLastMove(null);
-      setGameStatus('waiting');
+      setGameStatus('playing'); // Set to playing immediately
       setShowResetDialog(false);
       
     } catch (error) {
@@ -882,7 +882,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
             }`}>
               {currentPlayer === (isPlayerX ? 'X' : 'O') ? (
                 <p className="text-xl font-bold text-green-400">
-                  {isPlayerX && moveHistory.length === 0 
+                  {moveHistory.length === 0 
                     ? "It is your turn! Make your first move anywhere on the board."
                     : "It is your turn! Make your move."}
                 </p>
@@ -929,7 +929,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           const miniWin = boardWinner && checkMiniWinner(mini);
           const winLine = miniWin ? miniWin.line : [];
           const isActive = isBoardPlayable(miniIndex);
-          const isFirstMove = moveHistory.length === 0 && isPlayerX && currentPlayer === 'X';
+          const isFirstMove = moveHistory.length === 0 && currentPlayer === 'X';
           
           return (
             <div
