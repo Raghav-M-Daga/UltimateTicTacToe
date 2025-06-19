@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { getFirebaseAuth, getFirebaseDatabase } from '../../firebaseConfig';
-import { ref, set, get, remove, onValue } from 'firebase/database';
+import { auth } from '../../firebaseConfig';
+import { getDatabase, ref, set, get, remove, onValue } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 
 // Types
@@ -231,7 +231,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
   // Real-time sync for online games
   useEffect(() => {
     if (mode === 'online' && gameId) {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       console.log('Setting up real-time listener for game:', gameId);
@@ -297,7 +297,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           }
           
           // Handle reset requests
-          if (data.resetRequested && data.resetRequestedBy !== getFirebaseAuth().currentUser?.uid) {
+          if (data.resetRequested && data.resetRequestedBy !== auth.currentUser?.uid) {
             setShowResetDialog(true);
           } else if (!data.resetRequested) {
             setShowResetDialog(false);
@@ -306,7 +306,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
           console.log('Local state updated from real-time update. Current board:', safeBoard);
 
           // Set isPlayerX based on auth
-          const myUid = getFirebaseAuth().currentUser?.uid;
+          const myUid = auth.currentUser?.uid;
           if (myUid) {
             setIsPlayerX(data.players?.X === myUid);
           }
@@ -331,7 +331,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   const createGame = async (): Promise<void> => {
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const newGameId = Math.floor(100000 + Math.random() * 900000).toString();
       if (!newGameId) throw new Error('Failed to create game');
 
@@ -341,7 +341,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         activeBoard: null,
         winner: null,
         players: {
-          X: getFirebaseAuth().currentUser?.uid,
+          X: auth.currentUser?.uid,
           O: null
         },
         status: 'waiting',
@@ -384,14 +384,14 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
 
   const joinGame = async (id: string): Promise<void> => {
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${id}`);
       let snapshot = await get(gameRef);
       if (!snapshot.exists()) {
         throw new Error('Game not found');
       }
       let gameData = snapshot.val();
-      const myUid = getFirebaseAuth().currentUser?.uid;
+      const myUid = auth.currentUser?.uid;
       if (!myUid) throw new Error('Not authenticated');
 
       // Check if player is already in the game
@@ -507,7 +507,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       return;
     }
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       const snapshot = await get(gameRef);
       if (!snapshot.exists()) {
@@ -676,7 +676,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       // Request reset from the other player
@@ -684,7 +684,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
       const updatedData = {
         ...currentData,
         resetRequested: true,
-        resetRequestedBy: getFirebaseAuth().currentUser?.uid
+        resetRequestedBy: auth.currentUser?.uid
       };
       
       await set(gameRef, updatedData);
@@ -701,7 +701,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       // Get current player assignments to preserve them
@@ -748,7 +748,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
     if (!gameId) return;
     
     try {
-      const db = getFirebaseDatabase();
+      const db = getDatabase();
       const gameRef = ref(db, `games/${gameId}`);
       
       const currentData = (await get(gameRef)).val();
@@ -821,7 +821,7 @@ export default function UltimateTicTacToe({ mode, onBack }: UltimateTicTacToePro
         <button
           onClick={() => {
             if (gameId) {
-              const db = getFirebaseDatabase();
+              const db = getDatabase();
               remove(ref(db, `games/${gameId}`));
             }
             setGameId('');

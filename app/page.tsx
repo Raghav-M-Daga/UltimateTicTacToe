@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { signInWithPopup, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirebaseAuth, getGoogleProvider } from '../firebaseConfig';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
@@ -16,16 +16,11 @@ export default function SignInPage() {
   const router = useRouter();
 
   useEffect(() => {
-    try {
-      const auth = getFirebaseAuth();
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          router.push('/games');
-        }
-      }, (error) => {
-        console.error('Auth state change error:', error);
-        setFirebaseError('Authentication service error');
-      });
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push('/games');
+      }
+    });
 
       return () => unsubscribe();
     } catch (error) {
@@ -49,8 +44,7 @@ export default function SignInPage() {
     try {
       setLoading(true);
       setError(null);
-      const auth = getFirebaseAuth();
-      const provider = getGoogleProvider();
+      const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Sign in error:', err);

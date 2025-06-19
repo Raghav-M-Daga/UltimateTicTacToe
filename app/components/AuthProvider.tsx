@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthError } from 'firebase/auth';
-import { getFirebaseAuth } from '../../firebaseConfig';
+import { User } from 'firebase/auth';
+import { auth } from '../../firebaseConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -20,16 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const auth = getFirebaseAuth();
-      const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
-        setUser(user);
-        setLoading(false);
-      }, (error: AuthError) => {
-        console.error('Auth state change error:', error);
-        setError('Authentication error occurred');
-        setLoading(false);
-      });
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
 
       return () => unsubscribe();
     } catch (error) {
